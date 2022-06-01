@@ -1,0 +1,31 @@
+.positionTable th
+{
+    text-align: center;
+    font-family: Montserrat-Medium;
+    
+    color: #fff;
+    line-height: 1.4;
+    text-transform: uppercase;
+    background-color: #6c7ae0;
+    font-size: 1.3rem;
+
+    
+}
+.h3Heading{
+    background: linear-gradient(to right, #42e0eb, #5bb2e5);
+    font-family:monospace;
+}
+.h3Heading h3{
+    font-size: 1.9rem;
+}
+
+.tradesTable th{
+    text-align: center;
+    font-family: Montserrat-Medium;
+     color: #fff;
+    line-height: 1.4;
+    text-transform: uppercase;
+    background-color: #6c7ae0;
+    font-size: 1.0rem;
+    
+}

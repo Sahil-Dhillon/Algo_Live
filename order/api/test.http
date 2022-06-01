@@ -1,0 +1,13 @@
+POST http://localhost:4008/api/getClientPositions HTTP/1.1
+content-type: application/json
+
+{
+ 
+  "userID": "OU8828",
+  "apiKey": "pz6u3g35cjxbk7r6",
+  "accessToken": "geqTobqq5GttD7qdRXOcmU4j0jo1vEpw"
+ 
+}
+
+
+

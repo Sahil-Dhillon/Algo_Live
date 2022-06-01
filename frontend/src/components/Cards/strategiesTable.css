@@ -1,0 +1,32 @@
+
+
+.strategiesTable tr{
+
+    /* background-color: #6df2a0; */
+    font-weight: bold;
+}
+
+.h3Heading{
+    background: linear-gradient(to left, #36d1dc, #5b86e5);
+    /* background: #a7eef4; */
+    
+    font-family:monospace;
+    
+}
+
+.h3Heading h3{
+    font-size:1.9rem;
+}
+.strategiesTable th{
+    
+    text-align: center;
+    font-family: Montserrat-Medium;
+    font-size: 12px;
+    color: #fff;
+    line-height: 1.4;
+    text-transform: uppercase;
+    background-color: #6c7ae0;
+    font-size: 1rem;
+}
+
+

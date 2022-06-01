@@ -1,0 +1,33 @@
+#########################################
+#               LAMBDA                  #
+#########################################
+
+@ZERODHA_LOGIN_LAMBDA = https://wv7htciwcohpgdsxmfwemklfcy0dnxeg.lambda-url.ap-south-1.on.aws
+@YODHA_LOGIN_LAMBDA   = https://s7xhdv6peu3yxfhdnt3ckm3xzy0qwvcd.lambda-url.ap-south-1.on.aws  
+
+
+
+### ZERODHA Auto Login LAMBDA 
+POST {{ZERODHA_LOGIN_LAMBDA}} HTTP/1.1
+content-type: application/json
+
+{   "userID"      : "OU8828",
+    "password"    : "Vats@789",
+    "pin"         : "515151",
+    "api_key"     : "pz6u3g35cjxbk7r6",
+    "secret"      : "lefmpda4ohrxhies6htr41kipit9opml",
+    "auth_type"   : "totp",
+    "totp_secret" : "NY6ZZC6ZDCG6LNJAFZG53HS3IYWE4OHO" 
+}
+
+
+
+### YODHA Auto Login LAMBDA  - this is to get ENCTOKEN from zerodha 
+POST {{YODHA_LOGIN_LAMBDA}} HTTP/1.1
+content-type: application/json
+{   "userID"      : "OU8828",
+    "password"    : "Vats@789",
+    "pin"         : "515151",
+    "auth_type"   : "totp",
+    "totp_secret" : "NY6ZZC6ZDCG6LNJAFZG53HS3IYWE4OHO" 
+}

@@ -1,0 +1,27 @@
+.my-navbar{
+    height: 100%;
+    
+    color: white;
+    font-size: 16px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    text-decoration: none;
+  }
+
+.my-navbar:hover {
+    height: 100%;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: red;
+    font-size: 16px;
+    /* background-color: #61fb69; */
+    text-decoration: underline;
+
+  }
+  .my-navbar :visited {
+    height: 100%;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: red;
+    font-size: 16px;
+    background-color: #61fb69;
+    text-decoration: underline;
+
+  }
