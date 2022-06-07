@@ -1,6 +1,7 @@
 
 const fetch = require("isomorphic-fetch");
 const zerodhaTrade = require('../broker/zerodha/trade');
+const Strategy = require('../models/strategies');
 const placeTrade = require('../broker/zerodha/placeTrade')
 const Indicators = require('../indicators')
 const credData = require('../data/credentials.json');
@@ -9,33 +10,22 @@ const URL = process.env.BACKEND_URL
 let apiKey = credData.api_key;
 let accessToken = credData.access_token;
 
-
-const getAllAccounts = () => {
-
-
-    return fetch(`${URL}/api/strategies/getAllStrategiesForExecution`, {
-        method: "GET",
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-
-        },
-    })
-        .then((res) => {
-            console.log(res)
-            return res.json();
-        })
-        .catch((err) => {
-            return err;
-        });
+const getAllStrategiesForExecution = async () => {
+    try {
+        let strategies = await Strategy.find({ 'active': true }).populate('user').populate('account');
+        return strategies
+    } catch (error) {
+        return error
+    }
 }
+
 
 
 async function main() {
     try {
-        let strategies = await getAllAccounts();
+        let strategies = await getAllStrategiesForExecution();
         console.log("strategies")
-        // console.log(strategies);
+        console.log(strategies);
         for (let i = 0; i < 1; i++) {
             strategyCustom(strategies[i]);
         }
