@@ -40,7 +40,6 @@ if (cluster.isWorker) {
   require("./models/userModel");
   require("./models/futures");
   require("./models/simpleStockNames");
-  require("./models/fnoStockName");
   require("./models/futureTables");
   require("./models/futureData");
   require("./models/optionStockNames")

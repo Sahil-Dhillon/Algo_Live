@@ -4,11 +4,6 @@ const futures = mongoose.model("futures");
 const simpleStockName = mongoose.model("simpleStockNames");
 const futureTables = mongoose.model("futureTable");
 const futuresData = mongoose.model("futuresData");
-// const fu_nifty_1min = mongoose.model("fu_nifty_1min")
-// const fu_nifty_5min = mongoose.model("fu_nifty_5min")
-// const fu_banknifty_1min = mongoose.model("fu_banknifty_1min")
-// const equitiesData = mongoose.model("equitiesData");
-// const cryptosData = mongoose.model("cryptosData");
 const admin = mongoose.model("admins");
 const options = mongoose.model("options");
 const optionExpiryTable = mongoose.model("optionExpiryTable");
@@ -16,15 +11,11 @@ const optionsData = mongoose.model("optionsData");
 const userSchema = mongoose.model("Users");
 const getModel = require('../../models/createCandleModel')
 const candles = require('./candles')
-// const setExecutedOrders = require("../trading/trading").setExecutedOrders;
-// const setExecutedCryptoOrders =
-//   require("../trading/trading").setExecutedCryptoOrders;
 const { spawn } = require("child_process");
 const request = require("request");
 var cron = require("node-cron");
 const express = require("express");
 const app = express();
-// const db = require("../../services/db.js");
 const WebSocket = require("ws");
 require("socket.io")
 const dateFormater = (time) => {
