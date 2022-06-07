@@ -23,6 +23,7 @@ let disclosed_quantity = "0";
 
 
 
+
 async function placeTrade(account, userID, apiKey, accessToken, instrument, t_type, qty, order_type, product, price, trigger_price) {
     let authorization = "enctoken " + accessToken;
     console.log(instrument)

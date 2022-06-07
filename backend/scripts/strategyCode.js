@@ -5,7 +5,7 @@ const placeTrade = require('../broker/zerodha/placeTrade')
 const Indicators = require('../indicators')
 const credData = require('../data/credentials.json');
 const Utils = require('../utils');
-
+const URL = process.env.BACKEND_URL
 let apiKey = credData.api_key;
 let accessToken = credData.access_token;
 
@@ -13,7 +13,7 @@ let accessToken = credData.access_token;
 const getAllAccounts = () => {
 
 
-    return fetch(`http://localhost:8000/api/strategies/getAllStrategiesForExecution`, {
+    return fetch(`${URL}/api/strategies/getAllStrategiesForExecution`, {
         method: "GET",
         headers: {
             Accept: "application/json",
@@ -35,7 +35,7 @@ async function main() {
     try {
         let strategies = await getAllAccounts();
         console.log("strategies")
-        console.log(strategies);
+        // console.log(strategies);
         for (let i = 0; i < 1; i++) {
             strategyCustom(strategies[i]);
         }
@@ -47,7 +47,10 @@ async function main() {
 async function strategyCustom(strategy) {
     return new Promise(async (resolve, reject) => {
         try {
+            let currentTime = new Date();
+
             console.log(strategy)
+
             Utils.print("Strategy started", strategy.name)
             let entryTime = new Date(strategy.entryTime);
 
@@ -58,7 +61,8 @@ async function strategyCustom(strategy) {
             const exitHour = exitTime.getHours();
             const exitMinute = exitTime.getMinutes();
 
-            let instrument = "NSE:" + strategy.instrument1;
+            // let instrument = "NSE:" + strategy.instrument1;
+            let instrument = strategy.instrument1;
             let symbol = strategy.instrument2;
             let timeFrame = strategy.timeFrame;
             let account = strategy.account;
@@ -101,15 +105,18 @@ async function strategyCustom(strategy) {
                 candleIndex2 = 4;
             }
 
-            console.log(account);
-            let currentTime = new Date();
-            // await Utils.waitForTime(entryHour, entryMinute, 0);
+            // console.log(account);
+            await Utils.waitForTime(entryHour, entryMinute, 0);
             let indicator1Data, indicator2Data
             while (1) {
+                if (currentTime.getHours() >= exitHour && currentTime.getMinutes() >= exitMinute) {
+                    Utils.print("Strategy exitted")
+                    break;
+                }
                 if (indicator1 == "sma") {
                     try {
                         indicator1Data = await Indicators.sma({
-                            instrument: symbol,
+                            instrument: instrument,
                             timeFrame,
                             period: period1,
                             candleParam: candleParam1
@@ -124,7 +131,7 @@ async function strategyCustom(strategy) {
                     try {
                         let x = await Utils.getTodaysCandle(
 
-                            symbol,
+                            instrument,
                             timeFrame
                         );
                         // Utils.print("x", x)
@@ -154,19 +161,19 @@ async function strategyCustom(strategy) {
                         console.log("crossabove");
                         try {
 
-                            let order = await zerodhaTrade.placeTrade({
-                                "account": account._id,
-                                "userID": account.userID,
-                                "apiKey": apiKey,
-                                "accessToken": accessToken,
-                                "t_type": "SELL",
-                                "instrument": symbol,
-                                "qty": quantity,
-                                "product": orderType,
-                                "order_type": "MARKET",
-                                "price": 0,
-                                "trigger_price": 0
-                            })
+                            let order = await placeTrade(
+                                account._id,
+
+                                account.userID,
+                                account.apiKey,
+                                account.enctoken,
+                                symbol,
+                                direction,
+                                quantity,
+                                "MARKET",
+                                orderType,
+                                0,
+                                0)
 
                             Utils.print("order", order)
                             await checkForSLandTarget(symbol, account, stopLoss, target, direction, quantity, orderType, stopLossunit, targetunit, exitHour, exitMinute, timeFrame);
@@ -183,19 +190,20 @@ async function strategyCustom(strategy) {
                         console.log("crossbelow");
 
                         try {
-                            let order = await zerodhaTrade.placeTrade({
-                                "account": account._id,
-                                "userID": account.userID,
-                                "apiKey": apiKey,
-                                "accessToken": accessToken,
-                                "t_type": "SELL",
-                                "instrument": symbol,
-                                "qty": quantity,
-                                "product": orderType,
-                                "order_type": "MARKET",
-                                "price": 0,
-                                "trigger_price": 0
-                            })
+                            let order = await placeTrade(
+                                account._id,
+
+                                account.userID,
+                                account.apiKey,
+                                account.enctoken,
+                                symbol,
+                                direction,
+                                quantity,
+                                "MARKET",
+                                orderType,
+                                0,
+                                0
+                            )
                             Utils.print("order", order)
                             await checkForSLandTarget(symbol, account, stopLoss, target, direction, quantity, orderType, stopLossunit, targetunit, exitHour, exitMinute, timeFrame);
                         } catch (error) {
@@ -211,8 +219,7 @@ async function strategyCustom(strategy) {
                         try {
                             let order = await placeTrade(
                                 account._id,
-                                "OU8828",
-                                // account.userID,
+                                account.userID,
                                 account.apiKey,
                                 account.enctoken,
                                 symbol,
@@ -228,14 +235,14 @@ async function strategyCustom(strategy) {
                         } catch (error) {
                             console.log(error);
                         }
-                        console.log(order);
+                        // console.log(order);
                         break;
                     }
                 }
+
                 if (currentTime.getHours() == exitHour && currentTime.getMinutes() == exitMinute) {
                     break;
                 }
-                currentTime = new Date();
                 await Utils.waitForXseconds(1);
             }
         } catch (error) {
@@ -291,8 +298,8 @@ async function checkForSLandTarget(symbol, account, stopLoss, target, direction,
                             Utils.print('Stoploss hit')
                             let order = await placeTrade(
                                 account._id,
-                                "OU8828",
-                                // account.userID,
+
+                                account.userID,
                                 account.apiKey,
                                 account.enctoken,
                                 symbol,
@@ -315,8 +322,8 @@ async function checkForSLandTarget(symbol, account, stopLoss, target, direction,
                             Utils.print("Target hit")
                             let order = await placeTrade(
                                 account._id,
-                                "OU8828",
-                                // account.userID,
+
+                                account.userID,
                                 account.apiKey,
                                 account.enctoken,
                                 symbol,
@@ -340,8 +347,8 @@ async function checkForSLandTarget(symbol, account, stopLoss, target, direction,
                             Utils.print('Stoploss hit')
                             let order = await placeTrade(
                                 account._id,
-                                "OU8828",
-                                // account.userID,
+
+                                account.userID,
                                 account.apiKey,
                                 account.enctoken,
                                 symbol,
@@ -363,8 +370,7 @@ async function checkForSLandTarget(symbol, account, stopLoss, target, direction,
                             Utils.print("Target hit")
                             let order = await placeTrade(
                                 account._id,
-                                "OU8828",
-                                // account.userID,
+                                account.userID,
                                 account.apiKey,
                                 account.enctoken,
                                 symbol,
@@ -375,7 +381,7 @@ async function checkForSLandTarget(symbol, account, stopLoss, target, direction,
                                 0,
                                 0
                             )
-                            console.log(order);
+                            // console.log(order);
                             break;
                         } catch (error) {
                             console.log(error);

@@ -84,7 +84,7 @@ exports.updateStrategy = async (req, res) => {
 exports.getAllStrategiesForExecution = async (req, res) => {
     try {
 
-        let strategies = await Strategy.find().populate('user').populate('account');
+        let strategies = await Strategy.find({ 'active': true }).populate('user').populate('account');
 
         res.json(
             strategies

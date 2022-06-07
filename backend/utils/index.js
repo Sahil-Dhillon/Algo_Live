@@ -5,8 +5,10 @@ const credentials = require("../data/credentials.json");
 const zerodhaTrade = require('../broker/zerodha/trade');
 const getModel = require('../models/getModel')
 const logger = require("pino")();
-const LIVEPRICES_URL = "http://localhost:4007"
-const MISC_URL = "http://localhost:4008"
+// const LIVEPRICES_URL = "http://localhost:4007"
+const LIVEPRICES_URL = process.env.LIVEPRICES_URL
+// const MISC_URL = "http://localhost:4008"
+const MISC_URL = process.env.ORDER_URL
 
 function print(msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11) {
     var dt = new Date();
@@ -71,7 +73,7 @@ function waitForTime(entryHour, entryMinute, entrySecond) {
             if (dt.getHours() > entryHour ||
                 (dt.getHours() == entryHour && dt.getMinutes() > entryMinute) ||
                 (dt.getHours() == entryHour && dt.getMinutes() >= entryMinute && dt.getSeconds() >= entrySecond)) {
-                // print( { message : " Strategy Start Time Reached starting BNF Express ", time : dt.toLocaleTimeString()  });
+                print({ message: " Strategy Start Time Reached ", time: dt.toLocaleTimeString() });
                 resolve(true);
                 break;
             } else {
@@ -131,10 +133,10 @@ function getAllInstruments() {
 
 function getCandlesData(instrument, timeFrame, start, end) {
     return new Promise(async (resolve, reject) => {
-        let ex = ""
-        if (instrument.slice(0, 3) == "NFO") ex = "op"
-        else ex = "fu"
-        let model = `${ex}_${instrument.slice(4,).toLowerCase()}_${timeFrame}`
+        let ex = "fu"
+        // if (instrument.slice(0, 3) == "NFO") ex = "op"
+        // else ex = "fu"
+        let model = `${ex}_${instrument.toLowerCase()}_${timeFrame}`
         console.log(new Date(start))
         console.log(model)
         getModel(model).find({
@@ -190,10 +192,10 @@ function getTodaysCandle(instrument, timeFrame) {
         //     reject(err);
         // }
 
-        let ex = ""
-        if (instrument.slice(0, 3) == "NFO") ex = "op"
-        else ex = "fu"
-        let model = `${ex}_${instrument.slice(4,).toLowerCase()}_${interval}`
+        let ex = "fu"
+        // if (instrument.slice(0, 3) == "NFO") ex = "op"
+        // else ex = "fu"
+        let model = `${ex}_${instrument.toLowerCase()}_${interval}`
         // console.log(new Date(start))
         // console.log(model)
         getModel(model).find({

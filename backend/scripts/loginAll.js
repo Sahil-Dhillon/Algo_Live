@@ -1,10 +1,11 @@
 const zerodhaLogin = require("../broker/zerodha/login")
 const utils = require("../utils");
 const fetch = require("isomorphic-fetch");
+const URL = process.env.BACKEND_URL
 const getAllAccounts = () => {
 
 
-    return fetch(`http://localhost:8000/api/accounts/getAllLoginAccounts`, {
+    return fetch(`${URL}/api/accounts/getAllLoginAccounts`, {
         method: "GET",
         headers: {
             Accept: "application/json",
@@ -25,14 +26,14 @@ const getAllAccounts = () => {
 async function main() {
     let accounts = await getAllAccounts();
     console.log(accounts);
-    for(let account of accounts) {
+    for (let account of accounts) {
         await loginAccount(account);
     }
 
 }
 
 async function loginAccount(account) {
-    
+
     let {
         user,
         userID,
@@ -48,7 +49,7 @@ async function loginAccount(account) {
         enctoken,
         balance,
     } = account;
-    
+
     try {
         let response = await utils.login({
             userID,
@@ -59,7 +60,7 @@ async function loginAccount(account) {
             auth_type,
             totp_secret,
         });
-        console.log("response",response);
+        console.log("response", response);
         if (response) {
             let newAccount = {
                 user,
@@ -77,22 +78,22 @@ async function loginAccount(account) {
                 balance,
             };
             newAccount.accessToken = response;
-            let x = await fetch(`http://localhost:8000/api/accounts/updateAccount/${account._id}`, {
+            let x = await fetch(`${URL}/api/accounts/updateAccount/${account._id}`, {
                 method: "POST",
                 headers: {
                     Accept: "application/json",
                     "Content-Type": "application/json",
-                   
+
                 },
                 body: JSON.stringify(newAccount),
             })
-            if(x) {
+            if (x) {
                 console.log("success")
             }
-           
+
         }
-        
-        
+
+
     } catch (err) {
         return err;
     }

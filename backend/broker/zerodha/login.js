@@ -23,17 +23,12 @@ function getZerodhaEncToken({ userID, password, apiKey, pin, secret, auth_type, 
         //     "content-type": "application/json"
         // }
         let body = {
-            "userID": "OU8828",
-            "password": "Vats@789",
-            "pin": "515151",
-            "auth_type": "totp",
-            "totp_secret": "NY6ZZC6ZDCG6LNJAFZG53HS3IYWE4OHO"
 
-            // "userID": userID,
-            // "password": password,
-            // "pin": pin,
-            // "auth_type": auth_type,
-            // "totp_secret": totp_secret
+            "userID": userID,
+            "password": password,
+            "pin": pin,
+            "auth_type": auth_type,
+            "totp_secret": totp_secret
         }
         console.log(body)
         const options = {
