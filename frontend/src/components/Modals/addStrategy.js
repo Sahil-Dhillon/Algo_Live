@@ -72,7 +72,7 @@ export default function AddStrategy({ values, setValues }) {
                 direction: direction,
                 timeFrame: timeFrame,
                 orderType: orderType,
-                quantity: quantity,
+                quantity: quantity * 50,
                 stopLoss: stopLoss,
                 target: target,
                 indicator1: indicator1,

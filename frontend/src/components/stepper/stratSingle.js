@@ -57,16 +57,21 @@ export default function StratSingle({ values, setValues }) {
     error,
     message,
   } = values;
+  // {...values,multiplier} = values
 
   const [instrument1List, setInstrument1List] = React.useState([]);
   const [instrument2List, setInstrument2List] = React.useState([]);
   // const instrument2List = []
   const [validFutures, setvalidFutures] = React.useState([]);
   const [validOptions, setvalidOptions] = React.useState([]);
-  let qty = 0
   const handleChange = (e) => {
     setValues({ ...values, [e.target.name]: e.target.value });
   };
+  // const handleQtyChange = (e) =>{
+  //   React.useEffect(()=>{
+
+  //   },[qty])
+  // }
   React.useEffect(() => {
     if (indicator1 == "sma") {
       document.getElementById("multiplier1-input").disabled = true
@@ -80,21 +85,24 @@ export default function StratSingle({ values, setValues }) {
     }
   }, [indicator1, indicator2])
   React.useEffect(() => {
-    getAllFutures().then((res) => {
-      console.log(res)
-      return res.map((res => res.future))
-    }).then((data => {
-      setInstrument2List(data)
-    })).catch(error => {
-      console.log(error)
-    })
-    getAllFuturesExpiry().then((res) => {
-      console.log(res)
-      setvalidFutures(res)
-      console.log(validFutures)
+    getAllFuturesExpiry().then((data) => {
+      return data.toString().toUpperCase()
+    }).then((data) => {
+      getAllFutures().then((res) => {
+        console.log(res)
+        return res.map((res => res.future + data))
+      }).then((data => {
+        console.log(data)
+        setInstrument1List(data)
+      })).catch(error => {
+        console.log(error)
+      })
     }).catch(error => {
       console.log(error)
     })
+
+
+
   }, [])
 
   React.useEffect(() => {
@@ -126,21 +134,20 @@ export default function StratSingle({ values, setValues }) {
     var instrumentArray = []
     getAllOptions().then((res) => {
       // let ins1 = instrument1.toString().substr(0,)
-      instrumentArray.push(instrument1 + validFutures.toString().toUpperCase())
+      instrumentArray.push(`NFO:${instrument1}`)
       console.log(res)
+      console.log(instrument1)
       res.filter((data => {
-        if (data.split(":")[1].substr(0, 5) == instrument1) {
+        if (data.split(":")[1].substr(0, 5) == instrument1.substr(0, 5)) {
           console.log(data)
           instrumentArray.push(data)
-          quantity = qty * 50
-        } else if (data.split(":")[1].substr(0, 9) == instrument1)
+        } else if (data.split(":")[1].substr(0, 9) == instrument1.substr(0, 9))
           instrumentArray.push(data)
-        quantity = qty * 25
       }))
+      console.log(instrumentArray)
       return instrumentArray
     }).then((data) => {
-
-      setInstrument1List(instrumentArray)
+      setInstrument2List(data)
     }).catch(error => {
       console.log(error)
     })
@@ -257,16 +264,16 @@ export default function StratSingle({ values, setValues }) {
                 className="selectMenu"
                 labelId="demo-simple-select-outlined-label"
                 id="demo-simple-select-outlined"
-                value={instrument1 + "FUT"}
+                value={instrument1}
                 placeholder="Select Instrument1"
                 name="instrument1"
                 onChange={handleChange}
                 label="Direction"
               >
                 {
-                  instrument2List.map((data, index) => {
+                  instrument1List.map((data, index) => {
                     return (
-                      <MenuItem key={index} value={data}>{data + "FUT"}</MenuItem>
+                      <MenuItem key={index} value={data}>{data.toString().slice(0, -8)}</MenuItem>
                     )
                   })
                 }
@@ -294,7 +301,7 @@ export default function StratSingle({ values, setValues }) {
                 label="Instrument2"
               >
                 {
-                  instrument1List.map((data, index) => {
+                  instrument2List.map((data, index) => {
                     return (
                       <MenuItem key={index} value={data}>{data}</MenuItem>
                     )
@@ -568,7 +575,7 @@ export default function StratSingle({ values, setValues }) {
                 className="mt-2 selectMenu"
                 placeholder="1"
                 name="quantity"
-                value={qty}
+                value={quantity}
                 onChange={handleChange}
               />
             </Label>
