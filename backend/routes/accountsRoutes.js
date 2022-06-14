@@ -16,7 +16,7 @@ router.get('/getPositions/:id', requireSignin, authMiddleware, getPositions);
 
 module.exports = router;
 
-// loginOrderAccount()
+loginOrderAccount()
 cron.schedule(`0 30 8 * * 1-5`, async () => {
     loginOrderAccount()
 })
