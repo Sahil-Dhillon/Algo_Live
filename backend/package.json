@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.0.0",
+    "bfx-hf-indicators": "^2.0.8",
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
@@ -34,7 +35,8 @@
     "shortid": "^2.2.16",
     "stock-technical-indicators": "^2.0.1",
     "technicalindicators": "^3.1.0",
-    "totp-generator": "0.0.13"
+    "totp-generator": "0.0.13",
+    "trading-signals": "^3.6.1"
   },
   "engines": {
     "node": "14.17.5"
