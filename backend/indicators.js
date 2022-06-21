@@ -4,9 +4,13 @@ const zerodhaTrade = require("./broker/zerodha/trade");
 const utils = require("./utils");
 const { Supertrend } = require("stock-technical-indicators/study/Supertrend")
 const newStudyATR = new Supertrend();
+const { ChandeMO } = require('bfx-hf-indicators')
+const { CG } = require('trading-signals')
 // function superTrend(data, period, multiplier,candleParam) {
 
 // } 
+
+function normalize(val, max, min) { return (val - min) / (max - min); }
 
 async function sma({ instrument, timeFrame, period, candleParam }) {
     return new Promise(async (resolve, reject) => {
@@ -42,7 +46,7 @@ async function sma({ instrument, timeFrame, period, candleParam }) {
                 reject(err);
             }
 
-            console.log("candle", data[0])
+            // console.log("candle", data[0])
             let sma = SMA.calculate({
                 period: period,
                 values: data.map(x => x[candleParam])
@@ -78,7 +82,7 @@ async function vwap({ instrument, timeFrame, period, candleParam }) {
                 reject(err);
             }
 
-            console.log("cancle", data[0])
+            // console.log("cancle", data[0])
             let sma = VWAP.calculate({
                 period: period,
                 high: data.map(x => x[2]),
@@ -148,7 +152,172 @@ async function superTrend({ instrument, timeFrame, period, multiplier, candlePar
     });
 }
 
+async function chandeMomentum({ instrument, timeFrame, period, candleParam }) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            console.log("IN chande momentum!")
+            let x = 5;
+            let interval, data, candleIndex;
+            // console.log(instrument, timeFrame, period, candleParam)
+
+            if (timeFrame === "30" || timeFrame === "60") x = 10;
+            if (timeFrame == "1") interval = "1min"
+            else interval = timeFrame + "min"
+            let end = new Date();
+
+            if (candleParam === "open") {
+                candleIndex = 1;
+            } else if (candleParam === "high") {
+                candleIndex = 2;
+            } else if (candleParam === "low") {
+                candleIndex = 3;
+            } else if (candleParam === "close") {
+                candleIndex = 4;
+            }
+
+
+            let start = new Date(end.getTime() - (x * 24 * 60 * 60 * 1000));
+            // console.log(start)
+            // console.log(end)
+            try {
+                data = await utils.getCandlesData(instrument, interval, start, end)
+            }
+            catch (err) {
+                console.log(err)
+                reject(err);
+            }
+
+            console.log("candle", data[0])
+            const cmo = new ChandeMO([period])
+            cmo._dataKey = candleParam;
+            // console.log(ChandeMO,'object; ' , cmo)
+
+            for (let i = 0; i < period; i++) {
+                // console.log(data[data.length - i - 1][candleParam])
+                cmo.add(data[data.length - i - 1]);
+                // console.log(cmo)
+            }
+
+            console.log('cmov',cmo.v(), cmo.l())
+            resolve(cmo.v());
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+async function centerOfGravity({ instrument, timeFrame, period, candleParam }) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let x = 5;
+            let interval, data, candleIndex;
+            console.log("In center of gravity")
+
+            if (timeFrame === "30" || timeFrame === "60") x = 10;
+            if (timeFrame == "1") interval = "1min"
+            else interval = timeFrame + "min"
+            let end = new Date();
+
+            if (candleParam === "open") {
+                candleIndex = 1;
+            } else if (candleParam === "high") {
+                candleIndex = 2;
+            } else if (candleParam === "low") {
+                candleIndex = 3;
+            } else if (candleParam === "close") {
+                candleIndex = 4;
+            }
+
+
+            let start = new Date(end.getTime() - (x * 24 * 60 * 60 * 1000));
+            console.log(start)
+            console.log(end)
+            try {
+                data = await utils.getCandlesData(instrument, interval, start, end)
+            }
+            catch (err) {
+                console.log(err)
+                reject(err);
+            }
+
+            console.log("candle", data[0])
+            const cg = new CG(interval, period);
+
+            for (let i = 0; i < period; i++) {
+                // console.log(data[data.length - i - 1][candleParam])
+                cg.update(data[data.length - i - 1][candleParam]);
+                // console.log(cg)
+            }
+            
+            // console.log("Final Value: ", +cg.getResult().valueOf())
+
+            resolve(+cg.getResult().valueOf());
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+async function fisherTransform({ instrument, timeFrame, period, candleParam }) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let x = 5;
+            let interval, data, candleIndex;
+            // console.log(instrument, timeFrame, period, candleParam)
+
+            if (timeFrame === "30" || timeFrame === "60") x = 10;
+            if (timeFrame == "1") interval = "1min"
+            else interval = timeFrame + "min"
+            let end = new Date();
+
+            if (candleParam === "open") {
+                candleIndex = 1;
+            } else if (candleParam === "high") {
+                candleIndex = 2;
+            } else if (candleParam === "low") {
+                candleIndex = 3;
+            } else if (candleParam === "close") {
+                candleIndex = 4;
+            }
+
+
+            let start = new Date(end.getTime() - (x * 24 * 60 * 60 * 1000));
+            console.log(start)
+            console.log(end)
+            try {
+                data = await utils.getCandlesData(instrument, interval, start, end)
+            }
+            catch (err) {
+                console.log(err)
+                reject(err);
+            }
+
+            let nRecentValues = data.slice(-period);
+            
+            let max =  Math.max(...nRecentValues.map(o => o[candleParam]))
+            let min =  Math.min(...nRecentValues.map(o => o[candleParam]))
+
+            // for (let i = 0; i < period; i++) {
+            //     // console.log(data[data.length - i - 1][candleParam])
+            //     let normalizedValue = normalize(nRecentValues[nRecentValues.length - i - 1][candleParam], max, min)
+            //     cmo.add(data[data.length - i - 1]);
+            // }
+
+            let normalizedValue = normalize(nRecentValues[nRecentValues.length - 1][candleParam], max, min)
+
+            let fishTransform = (1/2) * Math.log( (1 + normalizedValue) / (1 - normalizedValue) )
+
+            // console.log(fishTransform)
+            resolve(fishTransform);
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
 
 module.exports["superTrend"] = superTrend;
 module.exports["sma"] = sma;
 module.exports["vwap"] = vwap;
+module.exports["cm"] = chandeMomentum;
+module.exports["cg"] = centerOfGravity;
+module.exports["ft"] = fisherTransform;
