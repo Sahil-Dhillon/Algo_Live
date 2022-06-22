@@ -19,7 +19,124 @@ const getAllStrategiesForExecution = async () => {
     }
 }
 
+const evaluateIndicatorValue = async (indicator, instrument, timeFrame, period, multiplier, candleParam) => {
+    console.log(indicator, instrument, timeFrame, period, multiplier, candleParam)
+    if (indicator === "sma") {
+        try {
+            indicatorData = await Indicators.sma({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
+    else if (indicator === "candle") {
+        try {
+            let x = await Utils.getTodaysCandle(
+                instrument,
+                timeFrame
+            );
+            // Utils.print("x: ", x)
+            indicatorData = x[x.length - 1][candleParam];
+            return indicatorData;
+        } catch (error) {
+            console.log(error);
+        }
+    }
+    else if (indicator === "vwap") {
+        try {
+            indicatorData = await Indicators.vwap({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
+    else if (indicator === "supertrend") {
+        try {
+            indicatorData = await Indicators.superTrend({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                multiplier,
+                candleParam: candleParam
+            }); 
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
+    else if (indicator === "cmo") {
+        try {
+            indicatorData = await Indicators.cmo({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
+    else if (indicator === "cog") {
+        try {
+            indicatorData = await Indicators.cog({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
+    else if (indicator === "ft") {
+        try {
+            indicatorData = await Indicators.ft({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
 
+    // if (indicator2 == "sma") {
+    //     try {
+    //         indicator2Data = await Indicators.sma({
+    //             instrument: instrument2,
+    //             apiKey: apiKey,
+    //             accessToken: accessToken,
+    //             timeFrame,
+    //             period: period2,
+    //             candleParam: candleParam2
+    //         });
+    //         Utils.print("indicator2Data", indicator2Data)
+    //     } catch (error) {
+    //         console.log(error);
+    //     }
+    // }
+
+}
 
 async function main() {
     try {
@@ -103,49 +220,23 @@ async function strategyCustom(strategy) {
                     Utils.print("Strategy exitted")
                     break;
                 }
-                if (indicator1 == "sma") {
-                    try {
-                        indicator1Data = await Indicators.sma({
-                            instrument: instrument,
-                            timeFrame,
-                            period: period1,
-                            candleParam: candleParam1
-                        });
-                        Utils.print("indicator1Data", indicator1Data)
-                    } catch (error) {
-                        console.log("Errorrr");
-                        console.log(error);
-                    }
-                }
-                if (indicator2 == "candle") {
-                    try {
-                        let x = await Utils.getTodaysCandle(
 
-                            instrument,
-                            timeFrame
-                        );
-                        // Utils.print("x", x)
-                        indicator2Data = x[x.length - 1][candleParam2];
-                        Utils.print("indicator2Data", indicator2Data)
-                    } catch (error) {
-                        console.log(error);
-                    }
+                try {
+                    indicator1Data = await evaluateIndicatorValue(indicator1, instrument, timeFrame, period1, multiplier1, candleParam1)
+                    Utils.print("indicator1Data: ", indicator1Data)
+                } catch (error) {
+                    console.log("Errorrr");
+                    console.log(error);
                 }
-                if (indicator2 == "sma") {
-                    try {
-                        indicator2Data = await Indicators.sma({
-                            instrument: symbol,
-                            apiKey: apiKey,
-                            accessToken: accessToken,
-                            timeFrame,
-                            period: period2,
-                            candleParam: candleParam2
-                        });
-                        Utils.print("indicator2Data", indicator2Data)
-                    } catch (error) {
-                        console.log(error);
-                    }
+
+                try {
+                    indicator2Data = await evaluateIndicatorValue(indicator2, instrument, timeFrame, period2, multiplier2, candleParam2)
+                    Utils.print("indicator2Data: ", indicator2Data)
+                } catch (error) {
+                    console.log("Errorrr");
+                    console.log(error);
                 }
+                
                 if (condition == "crossabove") {
                     if (indicator1Data < indicator2Data) {
                         console.log("crossabove");

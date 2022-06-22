@@ -70,9 +70,6 @@ async function vwap({ instrument, timeFrame, period, candleParam }) {
             else interval = timeFrame + "minute"
             let end = new Date();
 
-
-
-
             let start = new Date();
             try {
                 data = await utils.getCandlesData(instrument, interval, start, end)
@@ -119,7 +116,7 @@ async function superTrend({ instrument, timeFrame, period, multiplier, candlePar
                 reject(err);
             }
 
-            let candleST = newStudyATR.calculate(candlesData, { period: period, multiplier: multiplier });
+            let candleST = newStudyATR.calculate(data, { period: period, multiplier: multiplier });
 
             if (candleST.length > 1) {
 
@@ -318,6 +315,6 @@ async function fisherTransform({ instrument, timeFrame, period, candleParam }) {
 module.exports["superTrend"] = superTrend;
 module.exports["sma"] = sma;
 module.exports["vwap"] = vwap;
-module.exports["cm"] = chandeMomentum;
-module.exports["cg"] = centerOfGravity;
+module.exports["cmo"] = chandeMomentum;
+module.exports["cog"] = centerOfGravity;
 module.exports["ft"] = fisherTransform;
