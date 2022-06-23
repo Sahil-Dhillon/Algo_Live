@@ -119,6 +119,48 @@ const evaluateIndicatorValue = async (indicator, instrument, timeFrame, period, 
             console.log(error);
         }
     }
+    else if (indicator === "rsi") {
+        try {
+            indicatorData = await Indicators.rsi({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
+    else if (indicator === "macd") {
+        try {
+            indicatorData = await Indicators.macd({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
+    else if (indicator === "ema") {
+        try {
+            indicatorData = await Indicators.ema({
+                instrument: instrument,
+                timeFrame,
+                period: period,
+                candleParam: candleParam
+            });
+            return indicatorData;
+        } catch (error) {
+            console.log("Errorrr");
+            console.log(error);
+        }
+    }
 
     // if (indicator2 == "sma") {
     //     try {
