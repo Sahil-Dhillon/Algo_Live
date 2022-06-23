@@ -405,9 +405,9 @@ async function macd({ instrument, timeFrame, period, candleParam }) {
 
             // console.log("candle", data[0])
             let macd = MACD.calculate({
-                fastPeriod        : 5,
-                slowPeriod        : 8,
-                signalPeriod      : 3 ,
+                fastPeriod        : 12,
+                slowPeriod        : 26,
+                signalPeriod      : 9,
                 values: data.map(x => x[candleParam]),
                 SimpleMAOscillator: false,
                 SimpleMASignal    : false
