@@ -44,47 +44,24 @@ const strategySchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-
-    instrument1: {
+    dataSymbol: {
         type: String,
         required: true,
     },
-    instrument2: {
+    orderSymbol: {
         type: String,
         required: true,
     },
-    indicator1: {
-        type: String,
-        required: true,
-    },
-    period1: {
-        type: Number,
-
-    },
-    multiplier1: {
-        type: Number,
-    },
-    candleParam1: {
-        type: String,
-    },
-    indicator2: {
-        type: String,
-        required: true,
-    },
-    period2: {
-        type: Number,
-        
-    },
-    multiplier2: {
-        type: Number,
-    },
-    candleParam2: {
-        type: String,
-    },
-    condition: {
-        type: String,
-        enum: ["crossabove", "crossdown", "crossover","greaterthan","lessthan","equalto"],
-    },
+    indicators: [
+        {
+            indicator: String,
+            param1: Number,
+            param2: Number,
+            operator: String,
+            value1: Number,
+            value2: Number,
+        }
+    ],
     user: {
         type: ObjectId,
         ref: "User",
@@ -93,13 +70,21 @@ const strategySchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
-    targetunit: {
+    targetUnit: {
         type: String,
         enum: ["%", "Rs"],
     },
-    stopLossunit: {
+    stopLossUnit: {
         type: String,
         enum: ["%", "Rs"],
+    },
+    trailSLXPoint: {
+        type: Number,
+        required: true,
+    },
+    trailSLYPoint: {
+        type: Number,
+        required: true,
     },
 });
 
