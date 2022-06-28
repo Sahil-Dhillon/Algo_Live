@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+// const mongoose = require("mongoose");
 // const fu_nifty_1min = mongoose.model("fu_nifty_1min")
 // const fu_nifty_5min = mongoose.model("fu_nifty_5min")
 const cron = require("node-cron")
@@ -24,8 +24,10 @@ function candles(sym, name, token, timeframe) {
     cron.schedule(`0 */${timeframe} 9-15 * * 1-5`, async () => {
         console.log("cron running")
         let min1Candles = []
-        // let currentTime = new Date()s;
+        let currentTime = new Date().getTime();
+        console.log(currentTime)
         let minute = new Date(new Date().setSeconds(0, 0))
+
         let cacheData = {
             open: null,
             close: null,
