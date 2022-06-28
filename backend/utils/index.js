@@ -170,6 +170,7 @@ function getCandlesData(instrument, timeFrame, start, end) {
 function getTodaysCandle(instrument, timeFrame) {
     return new Promise(async (resolve, reject) => {
         let interval
+        // console.log(instrument, timeFrame)
         if (timeFrame == "1") interval = "1min"
         else interval = timeFrame + "minute"
         let today = new Date();
@@ -197,7 +198,7 @@ function getTodaysCandle(instrument, timeFrame) {
         // else ex = "fu"
         let model = `${ex}_${instrument.toLowerCase()}_${interval}`
         // console.log(new Date(start))
-        // console.log(model)
+        // console.log("Model Name: ", model)
         getModel(model).find({
             minute: { $gte: new Date(start) },
             // minute: { $lte: new Date(end) }

@@ -5,6 +5,7 @@ const FuturesToken = require('../models/futuresToken');
 const ObjectId = require('mongoose').Types.ObjectId;
 const Account = require('../models/accounts');
 const utils = require('../utils')
+
 exports.getAllStrategies = async (req, res) => {
     try {
         let user = req.params.id
@@ -21,47 +22,55 @@ exports.getAllStrategies = async (req, res) => {
 }
 
 exports.createStrategy = async (req, res) => {
-    try {
+
         let account = await Account.find({ user: req.body.user })
-        let stratgy = new Strategy({
-            name: req.body.name,
-            instrument1: req.body.instrument1,
-            instrument2: req.body.instrument2,
-            timeFrame: req.body.timeFrame,
-            direction: req.body.direction,
-            entryTime: req.body.entryTime,
-            exitTime: req.body.exitTime,
-            stopLoss: req.body.stopLoss,
-            target: req.body.target,
-            orderType: req.body.orderType,
-            quantity: req.body.quantity,
-            stopLossunit: req.body.stopLossunit,
-            targetunit: req.body.targetunit,
-            indicator1: req.body.indicator1,
-            period1: req.body.period1,
-            multiplier1: req.body.multiplier1,
-            active: req.body.active,
-            indicator2: req.body.indicator2,
-            period2: req.body.period2,
-            condition: req.body.condition,
-            multiplier2: req.body.multiplier2,
-            candleParam1: req.body.candleParam1,
-            candleParam2: req.body.candleParam2,
-            user: ObjectId(req.body.user),
-            account: ObjectId(account[0]._id)
+            
+        let strategy = new Strategy({
+            name: req.body.name, //
+            dataSymbol: req.body.dataSymbol, //
+            orderSymbol: req.body.orderSymbol, //
+            timeFrame: req.body.timeFrame, //
+            direction: req.body.direction, //
+            entryTime: req.body.entryTime, //
+            exitTime: req.body.exitTime, //
+            stopLoss: req.body.stopLoss, //
+            target: req.body.target, //
+            orderType: req.body.orderType, //
+            quantity: req.body.quantity, //
+            stopLossUnit: req.body.stopLossUnit, //
+            targetUnit: req.body.targetUnit, //
+            active: req.body.active, // expecting from the frontend
+            user: ObjectId(req.body.user), // expecting userid from frontend
+            account: ObjectId(account[0]._id), // this backend will handle
+            trailSLXPoint: req.body.trailSLXPoint, //
+            trailSLYPoint: req.body.trailSLYPoint, //
+            indicators: req.body.indicators,
+
+            // indicator1: req.body.indicator1,
+            // period1: req.body.period1,
+            // multiplier1: req.body.multiplier1,
+            // indicator2: req.body.indicator2,
+            // period2: req.body.period2,
+            // condition: req.body.condition,
+            // multiplier2: req.body.multiplier2,
+            // candleParam1: req.body.candleParam1,
+            // candleParam2: req.body.candleParam2,
         });
 
-        let savedStrategy = await stratgy.save();
-        res.json({
-            message: "Strategy created successfully!",
-            stratgy: savedStrategy
+        strategy.save()
+        .then(result => {
+            // console.log( "Strategy created successfully!", result)
+            res.json({
+                message: "Strategy created successfully!",
+                stratgy: result
+            });
+        }).catch ((error) => {
+            console.log(error)
+            res.json({
+                message: "Error while creating strategy!",
+                error: error
+            });
         });
-    } catch (error) {
-        res.json({
-            message: "Error while creating strategy!",
-            error: error
-        });
-    }
 
 }
 
