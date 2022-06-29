@@ -27,6 +27,7 @@ exports.createStrategy = async (req, res) => {
             
         let strategy = new Strategy({
             name: req.body.name, //
+            exchange: req.body.exchange, //
             dataSymbol: req.body.dataSymbol, //
             orderSymbol: req.body.orderSymbol, //
             timeFrame: req.body.timeFrame, //
