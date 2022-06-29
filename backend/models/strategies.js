@@ -44,6 +44,11 @@ const strategySchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    exchange: {
+        type: String,
+        required: true,
+        enum: ["fut_fut", "fut_opt","opt_opt"],
+    },
     dataSymbol: {
         type: String,
         required: true,
