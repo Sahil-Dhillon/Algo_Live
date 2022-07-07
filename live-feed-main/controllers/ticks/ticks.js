@@ -158,7 +158,7 @@ module.exports = function (io) {
               high: tick.last_price,
               low: tick.last_price,
               close: tick.last_price,
-              volume: tick.volume_traded,
+              volume: tick.last_traded_quantity,
               oi: tick.oi,
             };
           }
@@ -174,7 +174,7 @@ module.exports = function (io) {
             );
             cacheData[tick.instrument_token].volume = 
               cacheData[tick.instrument_token].volume +
-              tick.volume_traded;
+              tick.last_traded_quantity;
           }
 
           if (
@@ -276,7 +276,7 @@ module.exports = function (io) {
               high: tick.last_price,
               low: tick.last_price,
               close: tick.last_price,
-              volume: tick.volume_traded,
+              volume: tick.last_traded_quantity,
               oi: tick.oi,
             };
           }
@@ -291,7 +291,7 @@ module.exports = function (io) {
             );
             cacheData[tick.instrument_token].volume = 
               cacheData[tick.instrument_token].volume +
-              tick.volume_traded;
+              tick.last_traded_quantity;
           }
           if (
             cacheData[tick.instrument_token] &&
