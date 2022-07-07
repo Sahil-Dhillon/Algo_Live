@@ -62,7 +62,8 @@ const strategySchema = new mongoose.Schema({
             indicator: String,
             param1: Number,
             param2: Number,
-            operator: String,
+            operator1: String,
+            operator2: String,
             value1: Number,
             value2: Number,
         }
