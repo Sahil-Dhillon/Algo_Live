@@ -158,8 +158,11 @@ module.exports = function (io) {
               high: tick.last_price,
               low: tick.last_price,
               close: tick.last_price,
+              volume: tick.volume_traded,
+              oi: tick.oi,
             };
           }
+          //
           if (cacheData[tick.instrument_token]) {
             cacheData[tick.instrument_token].high = Math.max(
               cacheData[tick.instrument_token].high,
@@ -169,6 +172,9 @@ module.exports = function (io) {
               cacheData[tick.instrument_token].low,
               tick.last_price
             );
+            cacheData[tick.instrument_token].volume = 
+              cacheData[tick.instrument_token].volume +
+              tick.volume_traded;
           }
 
           if (
@@ -195,6 +201,8 @@ module.exports = function (io) {
                   high: cacheData[tick.instrument_token].high,
                   low: cacheData[tick.instrument_token].low,
                   close: tick.last_price,
+                  volume: cacheData[tick.instrument_token].volume,
+                  oi: tick.oi,
                 }, {
                   new: true,
                   upsert: true
@@ -268,6 +276,8 @@ module.exports = function (io) {
               high: tick.last_price,
               low: tick.last_price,
               close: tick.last_price,
+              volume: tick.volume_traded,
+              oi: tick.oi,
             };
           }
           if (cacheData[tick.instrument_token]) {
@@ -279,6 +289,9 @@ module.exports = function (io) {
               cacheData[tick.instrument_token].low,
               tick.last_price
             );
+            cacheData[tick.instrument_token].volume = 
+              cacheData[tick.instrument_token].volume +
+              tick.volume_traded;
           }
           if (
             cacheData[tick.instrument_token] &&
@@ -304,6 +317,8 @@ module.exports = function (io) {
                 high: cacheData[tick.instrument_token].high,
                 low: cacheData[tick.instrument_token].low,
                 close: tick.last_price,
+                volume: cacheData[tick.instrument_token].volume,
+                oi: tick.oi,
               }, {
                 new: true,
                 upsert: true
