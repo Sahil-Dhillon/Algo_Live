@@ -7,6 +7,8 @@ const ConvForUserSchema = new mongoose.Schema({
     high: Number,
     low: Number,
     close: Number,
+    volume: Number,
+    oi: Number,
 }, {
     timestamps: true
 }).index({ instrument_token: 1, minute: 1 }, { unique: true })
