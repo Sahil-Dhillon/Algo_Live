@@ -158,7 +158,7 @@ module.exports = function (io) {
               high: tick.last_price,
               low: tick.last_price,
               close: tick.last_price,
-              volume: tick.last_traded_quantity,
+              volume: tick.volume_traded,
               oi: tick.oi,
             };
           }
@@ -172,9 +172,6 @@ module.exports = function (io) {
               cacheData[tick.instrument_token].low,
               tick.last_price
             );
-            cacheData[tick.instrument_token].volume = 
-              cacheData[tick.instrument_token].volume +
-              tick.last_traded_quantity;
           }
 
           if (
@@ -201,7 +198,7 @@ module.exports = function (io) {
                   high: cacheData[tick.instrument_token].high,
                   low: cacheData[tick.instrument_token].low,
                   close: tick.last_price,
-                  volume: cacheData[tick.instrument_token].volume,
+                  volume: tick.volume_traded - cacheData[tick.instrument_token].volume,
                   oi: tick.oi,
                 }, {
                   new: true,
@@ -276,7 +273,7 @@ module.exports = function (io) {
               high: tick.last_price,
               low: tick.last_price,
               close: tick.last_price,
-              volume: tick.last_traded_quantity,
+              volume: tick.volume_traded,
               oi: tick.oi,
             };
           }
@@ -289,9 +286,6 @@ module.exports = function (io) {
               cacheData[tick.instrument_token].low,
               tick.last_price
             );
-            cacheData[tick.instrument_token].volume = 
-              cacheData[tick.instrument_token].volume +
-              tick.last_traded_quantity;
           }
           if (
             cacheData[tick.instrument_token] &&
@@ -317,7 +311,7 @@ module.exports = function (io) {
                 high: cacheData[tick.instrument_token].high,
                 low: cacheData[tick.instrument_token].low,
                 close: tick.last_price,
-                volume: cacheData[tick.instrument_token].volume,
+                volume: tick.volume_traded - cacheData[tick.instrument_token].volume,
                 oi: tick.oi,
               }, {
                 new: true,
