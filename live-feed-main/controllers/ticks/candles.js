@@ -33,7 +33,7 @@ function candles(sym, name, token, timeframe) {
             close: null,
             low: Infinity,
             high: 0,
-            volume: 0,
+            volume: null,
             oi: null,
         }
 
@@ -50,6 +50,7 @@ function candles(sym, name, token, timeframe) {
             for (let i = timeframe - 1; i >= 0; i--) {
                 if (min1Candles[i]) {
                     cacheData.open = min1Candles[i].open
+                    cacheData.volume = min1Candles[i].volume
                     break
                 }
             }
@@ -67,7 +68,6 @@ function candles(sym, name, token, timeframe) {
             if (min1Candles[i]) {
                 cacheData.high = Math.max(cacheData.high, min1Candles[i].high)
                 cacheData.low = Math.min(cacheData.low, min1Candles[i].low)
-                cacheData.volume = cacheData.volume + min1Candles[i].volume
             }
         }
         console.log(cacheData)
