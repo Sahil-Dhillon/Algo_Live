@@ -40,8 +40,8 @@ async function sma({ instrument, timeFrame, period, candleParam }) {
 
 
             let start = new Date(end.getTime() - (x * 24 * 60 * 60 * 1000));
-            console.log(start)
-            console.log(end)
+            // console.log(start)
+            // console.log(end)
             try {
                 data = await utils.getCandlesData(instrument, interval, start, end)
             }
@@ -163,7 +163,7 @@ async function superTrend({ instrument, timeFrame, period, multiplier, candlePar
 async function chandeMomentum({ instrument, timeFrame, period, candleParam }) {
     return new Promise(async (resolve, reject) => {
         try {
-            console.log("IN chande momentum!")
+            console.log("In chande momentum!")
             let x = 5;
             let interval, data, candleIndex;
             // console.log(instrument, timeFrame, period, candleParam)
@@ -195,7 +195,7 @@ async function chandeMomentum({ instrument, timeFrame, period, candleParam }) {
                 reject(err);
             }
 
-            console.log("candle", data[0])
+            // console.log("candle", data[0])
             const cmo = new ChandeMO([period])
             cmo._dataKey = candleParam;
             // console.log(ChandeMO,'object; ' , cmo)
@@ -206,7 +206,7 @@ async function chandeMomentum({ instrument, timeFrame, period, candleParam }) {
                 // console.log(cmo)
             }
 
-            console.log('cmov',cmo.v(), cmo.l())
+            // console.log('cmov',cmo.v(), cmo.l())
             resolve(cmo.v());
         } catch (err) {
             reject(err);

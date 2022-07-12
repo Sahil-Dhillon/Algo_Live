@@ -2,6 +2,7 @@
 const fetch = require("isomorphic-fetch");
 const zerodhaTrade = require('../broker/zerodha/trade');
 const Strategy = require('../models/strategies');
+const futureTables = require("../models/futureTables");
 const placeTrade = require('../broker/zerodha/placeTrade')
 const Indicators = require('../indicators')
 const credData = require('../data/credentials.json');
@@ -77,7 +78,7 @@ const evaluateIndicatorValue = async (indicator, instrument, timeFrame, period, 
             console.log(error);
         }
     }
-    else if (indicator === "cmo") {
+    else if (indicator === "chandeMomentum") {
         try {
             indicatorData = await Indicators.cmo({
                 instrument: instrument,
@@ -91,7 +92,7 @@ const evaluateIndicatorValue = async (indicator, instrument, timeFrame, period, 
             console.log(error);
         }
     }
-    else if (indicator === "cog") {
+    else if (indicator === "centerOfGravity") {
         try {
             indicatorData = await Indicators.cog({
                 instrument: instrument,
@@ -105,7 +106,7 @@ const evaluateIndicatorValue = async (indicator, instrument, timeFrame, period, 
             console.log(error);
         }
     }
-    else if (indicator === "ft") {
+    else if (indicator === "fisherTransform") {
         try {
             indicatorData = await Indicators.ft({
                 instrument: instrument,
@@ -183,8 +184,7 @@ const evaluateIndicatorValue = async (indicator, instrument, timeFrame, period, 
 async function main() {
     try {
         let strategies = await getAllStrategiesForExecution();
-        console.log("strategies")
-        console.log(strategies);
+        // console.log("strategies: ", strategies);
         for (let i = 0; i < 1; i++) {
             strategyCustom(strategies[i]);
         }
@@ -200,97 +200,163 @@ async function strategyCustom(strategy) {
 
             console.log(strategy)
 
-            Utils.print("Strategy started", strategy.name)
+            Utils.print("Strategy started: ", strategy.name)
+
             let entryTime = new Date(strategy.entryTime);
 
-            let entryHour = entryTime.getHours();
-            let entryMinute = entryTime.getMinutes();
+            const entryHour = entryTime.getHours();
+            const entryMinute = entryTime.getMinutes();
 
             let exitTime = new Date(strategy.exitTime);
             const exitHour = exitTime.getHours();
             const exitMinute = exitTime.getMinutes();
 
             // let instrument = "NSE:" + strategy.instrument1;
-            let instrument = strategy.instrument1;
-            let symbol = strategy.instrument2;
+
+            const candleParam = "close";
+            let indicators = strategy.indicators;
+            let exchange = strategy.exchange;
+            let dataSymbol = strategy.dataSymbol;
+            let orderSymbol = strategy.orderSymbol;
             let timeFrame = strategy.timeFrame;
             let account = strategy.account;
             let direction = strategy.direction;
             let orderType = strategy.orderType;
-            let indicator1 = strategy.indicator1;
-            let period1 = strategy.period1;
-            let multiplier1 = strategy.multiplier1;
+
             let quantity = strategy.quantity;
             let stopLoss = strategy.stopLoss;
             let target = strategy.target;
-            let indicator2 = strategy.indicator2;
-            let period2 = strategy.period2;
-            let multiplier2 = strategy.multiplier2;
-            let candleParam1 = strategy.candleParam1;
-            let candleParam2 = strategy.candleParam2;
-            let condition = strategy.condition;
-            let stopLossunit = strategy.stopLossunit;
-            let targetunit = strategy.targetunit;
 
-            let candleIndex1
-            if (candleParam1 === "open") {
-                candleIndex1 = 1;
-            } else if (candleParam1 === "high") {
-                candleIndex1 = 2;
-            } else if (candleParam1 === "low") {
-                candleIndex1 = 3;
-            } else if (candleParam1 === "close") {
-                candleIndex1 = 4;
-            }
-            let candleIndex2
+            let stopLossunit = strategy.stopLossUnit;
+            let targetunit = strategy.targetUnit;
+            let trailSLYPoint = strategy.trailSLYPoint;
+            let trailSLXPoint = strategy.trailSLXPoint;
 
-            if (candleParam2 === "open") {
-                candleIndex2 = 1;
-            } else if (candleParam2 === "high") {
-                candleIndex2 = 2;
-            } else if (candleParam2 === "low") {
-                candleIndex2 = 3;
-            } else if (candleParam2 === "close") {
-                candleIndex2 = 4;
-            }
+            let transformedOrderSymbol;
+
+            let indicatorValues = [];
 
             // console.log(account);
             await Utils.waitForTime(entryHour, entryMinute, 0);
-            let indicator1Data, indicator2Data
+
+            if (orderSymbol.includes("BANKNIFTY")){
+                transformedOrderSymbol = "BANKNIFTY"
+            } else {
+                transformedOrderSymbol = "NIFTY"
+            }
+
+            // access todays date
+            const todaysDate = new Date();
+            // set todays date to 12:00 midnight
+            todaysDate.setHours(0, 0, 0, 0);
+
+            await futureTables
+                .find({ date: { $gt: todaysDate } })
+                .sort("date")
+                .then((dates) => {
+                    let fut_name = dates[0].name.toUpperCase();
+
+                    transformedOrderSymbol = "NFO:" + transformedOrderSymbol + fut_name;
+                });
+
+            console.log("Symbol to be ordered: ", transformedOrderSymbol)
+            
             while (1) {
                 if (currentTime.getHours() >= exitHour && currentTime.getMinutes() >= exitMinute) {
                     Utils.print("Strategy exitted")
                     break;
                 }
-
-                try {
-                    indicator1Data = await evaluateIndicatorValue(indicator1, instrument, timeFrame, period1, multiplier1, candleParam1)
-                    Utils.print("indicator1Data: ", indicator1Data)
-                } catch (error) {
-                    console.log("Errorrr");
-                    console.log(error);
-                }
-
-                try {
-                    indicator2Data = await evaluateIndicatorValue(indicator2, instrument, timeFrame, period2, multiplier2, candleParam2)
-                    Utils.print("indicator2Data: ", indicator2Data)
-                } catch (error) {
-                    console.log("Errorrr");
-                    console.log(error);
-                }
                 
-                if (condition == "crossabove") {
-                    if (indicator1Data < indicator2Data) {
-                        console.log("crossabove");
-                        try {
+                let indicatorResults = [];
+                
+                try {
+                    for (let i = 0; i < indicators.length; i++) {
+                        const indicator = indicators[i];
+        
+                        let indicatorName = indicator.indicator;
+                        let operator1 = indicator.operator1;
+                        let operator2 = indicator.operator2;
+                        let param1 = indicator.param1;
+                        let param2 = indicator.param2;
+                        let buyValue = indicator.value1;
+                        let sellValue = indicator.value2;
 
+                        let shouldBuy, shouldSell;
+
+                        let comparator;
+        
+                        console.log(indicatorName, operator1, operator2, param1, param2, buyValue, sellValue)
+
+                        let result = await evaluateIndicatorValue(indicatorName, orderSymbol, timeFrame, param1, param2, candleParam)
+
+                        console.log("Indicator Result: ", result)
+
+                        if(direction === "BOTH") {
+                            if (operator1 === "greater") {
+                                if(result > buyValue) {
+                                    indicatorResults.push(result > buyValue)
+                                    shouldBuy = true;
+                                }
+                            } else if (operator1 === "less") {
+                                if(result < buyValue) {
+                                    indicatorResults.push(result < buyValue)
+                                    shouldBuy = true;
+                                }
+                            } else if(operator1 === "signal") {
+                                // idk what to do here
+                            }
+
+                            if (operator2 === "greater") {
+                                if(result > sellValue) {
+                                    indicatorResults.push(result > sellValue)
+                                    shouldSell = true;
+                                }
+                            } else if (operator2 === "less") {
+                                if(result < sellValue) {
+                                    indicatorResults.push(result > sellValue)
+                                    shouldSell = true;
+                                }
+                            } else if(operator2 === "signal") {
+                                // idk what to do here
+                            }
+                        } else {
+                            if (direction === "BUY") {
+                                comparator = buyValue;
+                            } else if(direction === "SELL") {
+                                comparator = sellValue;
+                            } 
+    
+                            if (operator1 === "greater") {
+                                indicatorResults.push(result > comparator)
+                            } else if (operator1 === "less") {
+                                indicatorResults.push(result < comparator)
+                            } else if(operator1 === "signal") {
+                                // idk what to do here
+                            }
+                        }
+
+                    }
+                    console.log(indicatorResults)
+                } catch (error) {
+                    console.log("Error occured in evaluating strategies!");
+                    console.log(error);
+                }
+
+                let shouldOrder = indicatorResults.every((element) =>  element === true) && indicatorResults.length > 0;
+
+                console.log("Whether we are going to order or not: ", shouldOrder)
+                
+                if(shouldOrder) {
+                    if (direction !== "BOTH") {
+                        let message = direction === "BUY" ? "Buying" : "Selling";
+                        console.log(message);
+                        try {
                             let order = await placeTrade(
                                 account._id,
-
                                 account.userID,
                                 account.apiKey,
                                 account.enctoken,
-                                symbol,
+                                transformedOrderSymbol,
                                 direction,
                                 quantity,
                                 "MARKET",
@@ -299,69 +365,65 @@ async function strategyCustom(strategy) {
                                 0)
 
                             Utils.print("order", order)
-                            await checkForSLandTarget(symbol, account, stopLoss, target, direction, quantity, orderType, stopLossunit, targetunit, exitHour, exitMinute, timeFrame);
-                        } catch (error) {
-                            console.log(error);
-                        }
-
-                        console.log(order);
-                        break;
-                    }
-                }
-                if (condition == "crossbelow") {
-                    if (indicator1Data > indicator2Data) {
-                        console.log("crossbelow");
-
-                        try {
-                            let order = await placeTrade(
-                                account._id,
-
-                                account.userID,
-                                account.apiKey,
-                                account.enctoken,
-                                symbol,
-                                direction,
-                                quantity,
-                                "MARKET",
-                                orderType,
-                                0,
-                                0
-                            )
-                            Utils.print("order", order)
-                            await checkForSLandTarget(symbol, account, stopLoss, target, direction, quantity, orderType, stopLossunit, targetunit, exitHour, exitMinute, timeFrame);
+                            // await checkForSLandTarget(orderSymbol, account, stopLoss, target, direction, quantity, orderType, stopLossUnit, targetUnit, exitHour, exitMinute, timeFrame);
+                            break;
                         } catch (error) {
                             console.log(error);
                         }
                         console.log(order);
                         break;
-                    }
-                }
-                if (condition == "crossover") {
-                    if (indicator1Data < indicator2Data || indicator1Data > indicator2Data) {
-                        console.log("crossover");
-                        try {
-                            let order = await placeTrade(
-                                account._id,
-                                account.userID,
-                                account.apiKey,
-                                account.enctoken,
-                                symbol,
-                                direction,
-                                quantity,
-                                "MARKET",
-                                orderType,
-                                0,
-                                0
-                            )
-                            Utils.print("order", order)
-                            await checkForSLandTarget(symbol, account, stopLoss, target, direction, quantity, orderType, stopLossunit, targetunit, exitHour, exitMinute, timeFrame)
-                        } catch (error) {
-                            console.log(error);
+                    } else if (direction === "BOTH") {
+                        if (shouldBuy) {
+                            let message = "Buying";
+                            console.log(message);
+                            try {
+                                let order = await placeTrade(
+                                    account._id,
+                                    account.userID,
+                                    account.apiKey,
+                                    account.enctoken,
+                                    transformedOrderSymbol,
+                                    "BUY",
+                                    quantity,
+                                    "MARKET",
+                                    orderType,
+                                    0,
+                                    0)
+
+                                Utils.print("order", order)
+                                // await checkForSLandTarget(orderSymbol, account, stopLoss, target, direction, quantity, orderType, stopLossUnit, targetUnit, exitHour, exitMinute, timeFrame);
+                                console.log(order);
+                                break;
+                            } catch (error) {
+                                console.log(error);
+                            }
+                        } else if(shouldSell) {
+                            let message = "Selling";
+                            console.log(message);
+                            try {
+                                let order = await placeTrade(
+                                    account._id,
+                                    account.userID,
+                                    account.apiKey,
+                                    account.enctoken,
+                                    transformedOrderSymbol,
+                                    "SELL",
+                                    quantity,
+                                    "MARKET",
+                                    orderType,
+                                    0,
+                                    0)
+
+                                Utils.print("order", order)
+                                // await checkForSLandTarget(orderSymbol, account, stopLoss, target, direction, quantity, orderType, stopLossUnit, targetUnit, exitHour, exitMinute, timeFrame);
+                                console.log(order);
+                                break;
+                            } catch (error) {
+                                console.log(error);
+                            }
                         }
-                        // console.log(order);
-                        break;
                     }
-                }
+                } 
 
                 if (currentTime.getHours() == exitHour && currentTime.getMinutes() == exitMinute) {
                     break;
