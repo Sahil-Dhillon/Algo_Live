@@ -1,9 +1,12 @@
+const mongoose = require("mongoose");
 const params = require("../models/params");
 const fetch = require("node-fetch");
 const instrumentID = require("../data/instrumentID.js");
 const credentials = require("../data/credentials.json");
 const zerodhaTrade = require('../broker/zerodha/trade');
 const getModel = require('../models/getModel')
+const futureTables = require("../models/futureTables");
+
 const logger = require("pino")();
 // const LIVEPRICES_URL = "http://localhost:4007"
 const LIVEPRICES_URL = process.env.LIVEPRICES_URL
@@ -134,11 +137,33 @@ function getAllInstruments() {
 function getCandlesData(instrument, timeFrame, start, end) {
     return new Promise(async (resolve, reject) => {
         let ex = "fu"
+        
+        if (instrument.includes("BANKNIFTY")){
+            instrument = "BANKNIFTY"
+        } else {
+            instrument = "NIFTY"
+        }
+        
         // if (instrument.slice(0, 3) == "NFO") ex = "op"
         // else ex = "fu"
+
+        // access todays date
+        const todaysDate = new Date();
+        // set todays date to 12:00 midnight
+        todaysDate.setHours(0, 0, 0, 0);
+
+        await futureTables
+            .find({ date: { $gt: todaysDate } })
+            .sort("date")
+            .then((dates) => {
+                let fut_name = dates[0].name.toUpperCase();
+
+                instrument = instrument + fut_name;
+            });
+
         let model = `${ex}_${instrument.toLowerCase()}_${timeFrame}`
-        console.log(new Date(start))
-        console.log(model)
+        // console.log(new Date(start))
+        console.log("Table Name: ", model);
         getModel(model).find({
             minute: { $gte: new Date(start) },
             // minute: { $lte: new Date(end) }
