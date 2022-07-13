@@ -1,8 +1,9 @@
 const fetch = require("isomorphic-fetch");
 const zerodhaTrade = require("../broker/zerodha/trade");
 const Strategy = require("../models/strategies");
+const Order = require("../models/orders");
 const futureTables = require("../models/futureTables");
-const placeTrade = require("../broker/zerodha/placeTrade");
+const { placeTrade, getOrder } = require("../broker/zerodha/placeTrade");
 const Indicators = require("../indicators");
 const credData = require("../data/credentials.json");
 const Utils = require("../utils");
@@ -198,8 +199,6 @@ async function main() {
 async function strategyCustom(strategy) {
   return new Promise(async (resolve, reject) => {
     try {
-      let currentTime = new Date();
-
       console.log(strategy);
 
       Utils.print("Strategy started: ", strategy.name);
@@ -229,14 +228,17 @@ async function strategyCustom(strategy) {
       let stopLoss = strategy.stopLoss;
       let target = strategy.target;
 
-      let stopLossunit = strategy.stopLossUnit;
-      let targetunit = strategy.targetUnit;
+      let stopLossUnit = strategy.stopLossUnit;
+      let targetUnit = strategy.targetUnit;
       let trailSLYPoint = strategy.trailSLYPoint;
       let trailSLXPoint = strategy.trailSLXPoint;
 
       let transformedOrderSymbol;
 
       let indicatorValues = [];
+
+      let price;
+      let orderStatus;
 
       // console.log(account);
       await Utils.waitForTime(entryHour, entryMinute, 0);
@@ -264,6 +266,8 @@ async function strategyCustom(strategy) {
       console.log("Symbol to be ordered: ", transformedOrderSymbol);
 
       while (1) {
+        let currentTime = new Date();
+
         if (
           currentTime.getHours() >= exitHour &&
           currentTime.getMinutes() >= exitMinute
@@ -372,51 +376,42 @@ async function strategyCustom(strategy) {
             let message = direction === "BUY" ? "Buying" : "Selling";
             console.log(message);
             try {
-              let order = await placeTrade(
-                account._id,
-                account.userID,
-                account.apiKey,
-                account.enctoken,
+              const entryOrder = await makeOrder(
+                account,
                 transformedOrderSymbol,
                 direction,
                 quantity,
-                "MARKET",
                 orderType,
-                0,
-                0
+                exchange,
+                "Indicator entry"
               );
 
-              Utils.print("order", order);
-              // await checkForSLandTarget(orderSymbol, account, stopLoss, target, direction, quantity, orderType, stopLossUnit, targetUnit, exitHour, exitMinute, timeFrame);
-              break;
+              price = entryOrder.price;
+              orderStatus = direction === "BUY" ? "Bought" : "Sold";
+
+              Utils.print("Entry Order: ", entryOrder);
             } catch (error) {
               console.log(error);
             }
-            console.log(order);
-            break;
           } else if (direction === "BOTH") {
             if (shouldBuy) {
               let message = "Buying";
               console.log(message);
               try {
-                let order = await placeTrade(
-                  account._id,
-                  account.userID,
-                  account.apiKey,
-                  account.enctoken,
+                const entryOrder = await makeOrder(
+                  account,
                   transformedOrderSymbol,
                   "BUY",
                   quantity,
-                  "MARKET",
                   orderType,
-                  0,
-                  0
+                  exchange,
+                  "Indicator entry"
                 );
 
-                Utils.print("order", order);
-                // await checkForSLandTarget(orderSymbol, account, stopLoss, target, direction, quantity, orderType, stopLossUnit, targetUnit, exitHour, exitMinute, timeFrame);
-                console.log(order);
-                break;
+                price = entryOrder.price;
+                orderStatus = "Bought";
+
+                Utils.print("Entry Order: ", entryOrder);
               } catch (error) {
                 console.log(error);
               }
@@ -424,29 +419,46 @@ async function strategyCustom(strategy) {
               let message = "Selling";
               console.log(message);
               try {
-                let order = await placeTrade(
-                  account._id,
-                  account.userID,
-                  account.apiKey,
-                  account.enctoken,
+                const entryOrder = await makeOrder(
+                  account,
                   transformedOrderSymbol,
                   "SELL",
                   quantity,
-                  "MARKET",
                   orderType,
-                  0,
-                  0
+                  exchange,
+                  "Indicator entry"
                 );
 
-                Utils.print("order", order);
-                // await checkForSLandTarget(orderSymbol, account, stopLoss, target, direction, quantity, orderType, stopLossUnit, targetUnit, exitHour, exitMinute, timeFrame);
-                console.log(order);
-                break;
+                price = entryOrder.price;
+                orderStatus = "Sold";
+
+                Utils.print("Entry Order: ", entryOrder);
               } catch (error) {
                 console.log(error);
               }
             }
           }
+
+          const exitOrder = await checkForSLandTarget(
+            transformedOrderSymbol,
+            account,
+            stopLoss,
+            target,
+            direction,
+            quantity,
+            price,
+            orderType,
+            exchange,
+            stopLossUnit,
+            targetUnit,
+            exitHour,
+            exitMinute,
+            timeFrame,
+            orderStatus
+          );
+
+          console.log("Exit Order: ", exitOrder);
+          break;
         }
 
         if (
@@ -464,167 +476,271 @@ async function strategyCustom(strategy) {
 }
 
 async function checkForSLandTarget(
-  symbol,
+  orderSymbol,
   account,
   stopLoss,
   target,
   direction,
   quantity,
+  price,
   orderType,
+  exchange,
   stopLossunit,
   targetunit,
   exitHour,
   exitMinute,
-  timeFrame
+  timeFrame,
+  orderStatus
 ) {
   return new Promise(async (resolve, reject) => {
     try {
       let SL, targetPrice, LTP;
 
-      LTP = await Utils.getLTP(symbol);
-      console.log("LTP", LTP);
-      let currentTime = new Date();
-      if (stopLossunit == "%" && direction == "BUY") {
-        SL = LTP - (LTP * +stopLoss) / 100;
+      let exitOrder;
+
+      console.log("In SL");
+      // LTP = await Utils.getLTP(symbol);
+      // console.log("LTP: ", LTP);
+
+      if (direction !== "BOTH") {
+        if (stopLossunit == "%" && direction == "BUY") {
+          SL = price - (price * +stopLoss) / 100;
+        }
+        if (stopLossunit == "%" && direction == "SELL") {
+          SL = price + (price * +stopLoss) / 100;
+        }
+        if (stopLossunit == "Rs" && direction == "BUY") {
+          SL = price - +stopLoss;
+        }
+        if (stopLossunit == "Rs" && direction == "SELL") {
+          SL = price + +stopLoss;
+        }
+
+        if (targetunit == "%" && direction == "BUY") {
+          targetPrice = price + (price * +target) / 100;
+        }
+        if (targetunit == "%" && direction == "SELL") {
+          targetPrice = price - (price * +target) / 100;
+        }
+        if (targetunit == "Rs" && direction == "BUY") {
+          targetPrice = price + +target;
+        }
+        if (targetunit == "Rs" && direction == "SELL") {
+          targetPrice = price - +target;
+        }
+      } else {
+        if (stopLossunit == "%" && orderStatus == "Bought") {
+          SL = price - (price * +stopLoss) / 100;
+        }
+        if (stopLossunit == "%" && orderStatus == "Sold") {
+          SL = price + (price * +stopLoss) / 100;
+        }
+        if (stopLossunit == "Rs" && orderStatus == "Bought") {
+          SL = price - +stopLoss;
+        }
+        if (stopLossunit == "Rs" && orderStatus == "Sold") {
+          SL = price + +stopLoss;
+        }
+
+        if (targetunit == "%" && orderStatus == "Bought") {
+          targetPrice = price + (price * +target) / 100;
+        }
+        if (targetunit == "%" && orderStatus == "Sold") {
+          targetPrice = price - (price * +target) / 100;
+        }
+        if (targetunit == "Rs" && orderStatus == "Bought") {
+          targetPrice = price + +target;
+        }
+        if (targetunit == "Rs" && orderStatus == "Sold") {
+          targetPrice = price - +target;
+        }
       }
-      if (stopLossunit == "%" && direction == "SELL") {
-        SL = LTP + (LTP * +stopLoss) / 100;
-      }
-      if (stopLossunit == "Rs" && direction == "BUY") {
-        SL = LTP - +stopLoss;
-      }
-      if (stopLossunit == "Rs" && direction == "SELL") {
-        SL = LTP + +stopLoss;
-      }
-      if (targetunit == "%" && direction == "BUY") {
-        targetPrice = LTP + (LTP * +target) / 100;
-      }
-      if (targetunit == "%" && direction == "SELL") {
-        targetPrice = LTP - (LTP * +target) / 100;
-      }
-      if (targetunit == "Rs" && direction == "BUY") {
-        targetPrice = LTP + +target;
-      }
-      if (targetunit == "Rs" && direction == "SELL") {
-        targetPrice = LTP - +target;
-      }
-      Utils.print("checking exit for ", symbol);
-      Utils.print("SL", SL);
-      Utils.print("targetPrice", targetPrice);
+
+      Utils.print("checking exit for ", orderSymbol);
+      Utils.print("SL: ", SL);
+      Utils.print("targetPrice: ", targetPrice);
+
       while (1) {
-        LTP = await Utils.getLTP(symbol);
-        Utils.print("checking exit for ", symbol, LTP);
-        if (direction == "BUY") {
+        LTP = 1;
+        // await Utils.getLTP(orderSymbol);
+        Utils.print("checking exit for ", orderSymbol, LTP);
+
+        let currentTime = new Date();
+
+        if (
+          currentTime.getHours() == exitHour &&
+          currentTime.getMinutes() >= exitMinute
+        ) {
+          Utils.print("Exit Time Reached!");
+          if (orderStatus === "Bought") {
+            exitOrder = await makeOrder(
+              account,
+              orderSymbol,
+              "SELL",
+              quantity,
+              orderType,
+              exchange,
+              "Exit Time Reached"
+            );
+            // Utils.print("Exit Order: ", exitOrder);
+          } else if (orderStatus === "Sold") {
+            exitOrder = await makeOrder(
+              account,
+              orderSymbol,
+              "BUY",
+              quantity,
+              orderType,
+              exchange,
+              "Exit Time Reached"
+            );
+            // Utils.print("Exit Order: ", exitOrder);
+          }
+          break;
+        }
+        if (orderStatus == "Bought") {
           if (LTP < SL) {
             try {
               Utils.print("Stoploss hit");
-              let order = await placeTrade(
-                account._id,
-
-                account.userID,
-                account.apiKey,
-                account.enctoken,
-                symbol,
+              exitOrder = await makeOrder(
+                account,
+                orderSymbol,
                 "SELL",
                 quantity,
-                "MARKET",
                 orderType,
-                0,
-                0
+                exchange,
+                "Stoploss Hit"
               );
-              Utils.print("order", order);
-              console.log(order);
+              // Utils.print("Exit Order: ", exitOrder);
               break;
             } catch (error) {
               console.log(error);
             }
-          }
-          if (
-            LTP > targetPrice ||
-            (currentTime.getHours() == exitHour &&
-              currentTime.getMinutes() >= exitMinute)
-          ) {
+          } else if (LTP > targetPrice) {
             try {
               Utils.print("Target hit");
-              let order = await placeTrade(
-                account._id,
-
-                account.userID,
-                account.apiKey,
-                account.enctoken,
-                symbol,
+              exitOrder = await makeOrder(
+                account,
+                orderSymbol,
                 "SELL",
                 quantity,
-                "MARKET",
                 orderType,
-                0,
-                0
+                exchange,
+                "Target Hit"
               );
-              console.log(order);
+              // Utils.print("Exit Order: ", exitOrder);
               break;
             } catch (error) {
               console.log(error);
             }
           }
+          // else if (direction === "BOTH") {
+          //   if (operator2 === "Greater") {
+          //     if(LTP > sellValue) {
+          //       //sell
+          //     }
+          //   } else if(operator2 === "Less") {
+          //     if(LTP < sellValue) {
+          //       //sell
+          //     }
+          //   }
+          // }
         }
-        if (direction == "SELL") {
+        if (orderStatus == "Sold") {
           if (LTP > SL) {
             try {
               Utils.print("Stoploss hit");
-              let order = await placeTrade(
-                account._id,
-
-                account.userID,
-                account.apiKey,
-                account.enctoken,
-                symbol,
-                "SELL",
+              exitOrder = await makeOrder(
+                account,
+                orderSymbol,
+                "BUY",
                 quantity,
-                "MARKET",
                 orderType,
-                0,
-                0
+                exchange,
+                "Stoploss Hit"
               );
-              console.log(order);
+              // Utils.print("Exit Order: ", exitOrder);
               break;
             } catch (error) {
               console.log(error);
             }
-          }
-          if (
-            LTP < targetPrice ||
-            (currentTime.getHours() == exitHour &&
-              currentTime.getMinutes() >= exitMinute)
-          ) {
+          } else if (LTP < targetPrice) {
             try {
               Utils.print("Target hit");
-              let order = await placeTrade(
-                account._id,
-                account.userID,
-                account.apiKey,
-                account.enctoken,
-                symbol,
+              exitOrder = await makeOrder(
+                account,
+                orderSymbol,
                 "SELL",
                 quantity,
-                "MARKET",
                 orderType,
-                0,
-                0
+                exchange,
+                "Target Hit"
               );
-              // console.log(order);
+              // Utils.print("Exit Order: ", exitOrder);
               break;
             } catch (error) {
               console.log(error);
             }
           }
         }
-        currentTime = new Date();
+
         await Utils.waitForXseconds(1);
       }
+
+      resolve(exitOrder);
     } catch (error) {
       reject(error);
     }
   });
 }
+
+const makeOrder = async (
+  account,
+  transformedOrderSymbol,
+  direction,
+  quantity,
+  orderType,
+  exchange,
+  remarks
+) => {
+  let order = await placeTrade(
+    account._id,
+    account.userID,
+    account.apiKey,
+    account.enctoken,
+    transformedOrderSymbol,
+    direction,
+    quantity,
+    "MARKET",
+    orderType,
+    0,
+    0
+  );
+
+  let orderHistory = await getOrder(
+    account,
+    account.userID,
+    account.enctoken,
+    order.data.order_id
+  );
+
+  let price = orderHistory.data[orderHistory.data.length - 1].average_price;
+
+  let orderDetails = new Order({
+    user: account.user,
+    account: account._id,
+    orderId: order.data.order_id,
+    exchange: exchange,
+    orderSymbol: transformedOrderSymbol,
+    orderType: orderType,
+    direction: direction,
+    price: price,
+    quantity: quantity,
+    remarks: remarks,
+  });
+
+  const newOrder = await orderDetails.save();
+
+  return newOrder;
+};
 
 main();
