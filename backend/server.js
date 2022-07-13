@@ -11,9 +11,10 @@ const authRoutes = require("./routes/authRoutes");
 
 const userRouters = require("./routes/userRoutes");
 const accountRoutes = require("./routes/accountsRoutes");
-const tradeRoutes = require("./routes/tradeRoutes");
+// const tradeRoutes = require("./routes/tradeRoutes");
 const strategyRoutes = require("./routes/strategyRoutes");
-//app
+const orderRoutes = require("./routes/orderRoutes");
+
 const app = express();
 
 //database connect
@@ -43,7 +44,8 @@ app.use("/api", authRoutes);
 app.use("/api", userRouters);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/strategies", strategyRoutes);
-app.use("/api/trades", tradeRoutes);
+// app.use("/api/trades", tradeRoutes);
+app.use("/api/orders", orderRoutes);
 
 //port
 const port = process.env.PORT || 8000;
