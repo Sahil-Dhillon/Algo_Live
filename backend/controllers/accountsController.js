@@ -9,7 +9,6 @@ exports.addAccount = async (req, res) => {
         user,
         userID,
         auth_type,
-        name,
         broker,
         password,
         pin,
@@ -25,7 +24,6 @@ exports.addAccount = async (req, res) => {
         user,
         userID,
         auth_type,
-        name,
         broker,
         password,
         pin,
@@ -136,36 +134,35 @@ exports.loginOrderAccount = async () => {
 
     try {
         // let id = req.params.id;
-        let account = await Account.findOne({});
+        let accounts = await Account.find({});
 
-        if (account == null) {
+        if (accounts == null) {
             // res.json({ message: "Account not found" });
-            console.log("account not found")
+            console.log("accounts not found!")
         }
         else {
-            console.log(account)
-            console.log("this")
-            let token = await zerodhaLogin.getZerodhaEncToken({
-                userID: account.userID,
-                password: account.password,
-                pin: account.pin,
-                apiKey: account.apiKey,
-                secret: account.secret,
-                auth_type: account.auth_type,
-                totp_secret: account.totp_secret,
-            });
-            if (token) {
-                account.enctoken = token.access_token;
+            console.log("Users Accounts: ", accounts);
+            for (const account of accounts) {
+                let token = await zerodhaLogin.getZerodhaEncToken({
+                    userID: account.userID,
+                    password: account.password,
+                    pin: account.pin,
+                    apiKey: account.apiKey,
+                    secret: account.secret,
+                    auth_type: account.auth_type,
+                    totp_secret: account.totp_secret,
+                });
+                if (token) {
+                    account.enctoken = token.access_token;
+                    await account.save();
+                    console.log("Enc token generated for user (", account.userID, ") is: ", token.access_token);
 
-                await account.save();
-                console.log(account)
-
-                console.log("enc token generated")
-                // res.json(account);
-            }
-            else {
-                // res.json({ message: "Token not found" });
-                console.log("token not found")
+                    // res.json(account);
+                }
+                else {
+                    // res.json({ message: "Token not found" });
+                    console.log("Enc token cannot be generated for user (", account.userID, ")");
+                }
             }
         }
     } catch (error) {
