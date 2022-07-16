@@ -36,7 +36,7 @@ const strategySchema = new mongoose.Schema(
     remarks: String,
     status: String,
     pairId: {
-      type: Number,
+      type: String,
       required: true,
     },
   },
