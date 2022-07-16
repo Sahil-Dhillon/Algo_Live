@@ -1,24 +1,25 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema;
 
-var AccountSchema = new mongoose.Schema({
+var AccountSchema = new mongoose.Schema(
+  {
     user: {
-        type: ObjectId,
-        ref: "User",
-        required: true,
+      type: ObjectId,
+      ref: "User",
+      required: true,
     },
     broker: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     userID: {
-        type: String,
-        required: true,
-        unique: true,
+      type: String,
+      required: true,
+      unique: true,
     },
     password: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     pin: String,
     auth_type: String,
@@ -28,12 +29,17 @@ var AccountSchema = new mongoose.Schema({
     accessToken: String, // not to be shoqn
     enctoken: String, //
     balance: {
-        type: Number,
-        required: true,
-        default: 0,
+      type: Number,
+      required: true,
+      default: 0,
     },
-},
-    { timestamps: true }
+    isDefault: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+  },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Account", AccountSchema);

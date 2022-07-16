@@ -33,6 +33,7 @@ exports.addAccount = async (req, res) => {
         accessToken,
         enctoken,
         balance,
+        isDefault: false,
     });
 
     try {
@@ -43,6 +44,28 @@ exports.addAccount = async (req, res) => {
     }
 };
 
+exports.makeDefaultAccount = async (req, res) => {
+    const id = req.params.id;
+    const accountId = req.body.accountId;
+
+    try {
+        const accounts = await Account.find({user: id, isDefault: true});
+        if (accounts) {
+            for (const account of accounts) {
+                account.isDefault = false;
+                await account.save();
+            }
+        }
+
+        const defaultAccount = await Account.findOne({_id: accountId});
+        defaultAccount.isDefault = true;
+        const updatedAccount = await defaultAccount.save();
+
+        res.json(updatedAccount);
+    } catch (error) {
+        res.json(error);
+    }
+}
 
 exports.getAccounts = async (req, res) => {
     try {
@@ -57,10 +80,10 @@ exports.getAccounts = async (req, res) => {
 exports.updateAccount = async (req, res) => {
     const {
         userID,
-        accountID,
-        name,
+        accountId,
         broker,
         password,
+        auth_type,
         pin,
         totp_secret,
         apiKey,
@@ -71,15 +94,15 @@ exports.updateAccount = async (req, res) => {
     } = req.body;
 
     try {
-        const id = req.params.id
+        const user = req.params.id
         const updatedAccount = await Account.updateOne(
-            { _id: id },
+            { _id: accountId },
             {
                 userID,
-                accountID,
-                name,
+                user,
                 broker,
                 password,
+                auth_type,
                 pin,
                 totp_secret,
                 apiKey,
