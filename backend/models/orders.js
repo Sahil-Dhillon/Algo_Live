@@ -34,6 +34,11 @@ const strategySchema = new mongoose.Schema(
     price: Number,
     quantity: Number,
     remarks: String,
+    status: String,
+    pairId: {
+      type: Number,
+      required: true,
+    },
   },
   { timestamps: true }
 );
