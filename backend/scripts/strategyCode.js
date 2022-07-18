@@ -1,10 +1,11 @@
 const fetch = require("isomorphic-fetch");
 const zerodhaTrade = require("../broker/zerodha/trade");
+const { v4: uuidv4 } = require("uuid");
 const Strategy = require("../models/strategies");
 const Order = require("../models/orders");
 const futureTables = require("../models/futureTables");
 const { placeTrade, getOrder } = require("../broker/zerodha/placeTrade");
-const Indicators = require("../indicators");
+const { evaluateIndicatorValue } = require("./evaluateIndicators");
 const credData = require("../data/credentials.json");
 const Utils = require("../utils");
 const URL = process.env.BACKEND_URL;
@@ -22,174 +23,17 @@ const getAllStrategiesForExecution = async () => {
   }
 };
 
-const evaluateIndicatorValue = async (
-  indicator,
-  instrument,
-  timeFrame,
-  period,
-  multiplier,
-  candleParam
-) => {
-  console.log(
-    indicator,
-    instrument,
-    timeFrame,
-    period,
-    multiplier,
-    candleParam
-  );
-  if (indicator === "sma") {
-    try {
-      indicatorData = await Indicators.sma({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "candle") {
-    try {
-      let x = await Utils.getTodaysCandle(instrument, timeFrame);
-      // Utils.print("x: ", x)
-      indicatorData = x[x.length - 1][candleParam];
-      return indicatorData;
-    } catch (error) {
-      console.log(error);
-    }
-  } else if (indicator === "vwap") {
-    try {
-      indicatorData = await Indicators.vwap({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "supertrend") {
-    try {
-      indicatorData = await Indicators.superTrend({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        multiplier,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "chandeMomentum") {
-    try {
-      indicatorData = await Indicators.cmo({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "centerOfGravity") {
-    try {
-      indicatorData = await Indicators.cog({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "fisherTransform") {
-    try {
-      indicatorData = await Indicators.ft({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "rsi") {
-    try {
-      indicatorData = await Indicators.rsi({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "macd") {
-    try {
-      indicatorData = await Indicators.macd({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  } else if (indicator === "ema") {
-    try {
-      indicatorData = await Indicators.ema({
-        instrument: instrument,
-        timeFrame,
-        period: period,
-        candleParam: candleParam,
-      });
-      return indicatorData;
-    } catch (error) {
-      console.log("Errorrr");
-      console.log(error);
-    }
-  }
-
-  // if (indicator2 == "sma") {
-  //     try {
-  //         indicator2Data = await Indicators.sma({
-  //             instrument: instrument2,
-  //             apiKey: apiKey,
-  //             accessToken: accessToken,
-  //             timeFrame,
-  //             period: period2,
-  //             candleParam: candleParam2
-  //         });
-  //         Utils.print("indicator2Data", indicator2Data)
-  //     } catch (error) {
-  //         console.log(error);
-  //     }
-  // }
-};
-
 async function main() {
   try {
     let strategies = await getAllStrategiesForExecution();
     // console.log("strategies: ", strategies);
-    for (let i = 0; i < 1; i++) {
-      strategyCustom(strategies[i]);
+
+    if (strategies.length > 0) {
+      for (let i = 0; i < 1; i++) {
+        strategyCustom(strategies[i]);
+      }
+    } else {
+      console.log("No strategies for execution!");
     }
   } catch (error) {
     console.log(error);
@@ -238,6 +82,7 @@ async function strategyCustom(strategy) {
       let indicatorValues = [];
 
       let price;
+      let pairId;
       let orderStatus;
 
       // console.log(account);
@@ -263,6 +108,7 @@ async function strategyCustom(strategy) {
           transformedOrderSymbol = "NFO:" + transformedOrderSymbol + fut_name;
         });
 
+      // transformedOrderSymbol = "NSE:INFY";
       console.log("Symbol to be ordered: ", transformedOrderSymbol);
 
       while (1) {
@@ -306,7 +152,7 @@ async function strategyCustom(strategy) {
 
             let result = await evaluateIndicatorValue(
               indicatorName,
-              orderSymbol,
+              dataSymbol,
               timeFrame,
               param1,
               param2,
@@ -374,6 +220,7 @@ async function strategyCustom(strategy) {
         if (shouldOrder) {
           if (direction !== "BOTH") {
             let message = direction === "BUY" ? "Buying" : "Selling";
+            pairId = uuidv4();
             console.log(message);
             try {
               const entryOrder = await makeOrder(
@@ -383,7 +230,8 @@ async function strategyCustom(strategy) {
                 quantity,
                 orderType,
                 exchange,
-                "Indicator entry"
+                "Indicator entry",
+                pairId
               );
 
               price = entryOrder.price;
@@ -396,6 +244,7 @@ async function strategyCustom(strategy) {
           } else if (direction === "BOTH") {
             if (shouldBuy) {
               let message = "Buying";
+              pairId = uuidv4();
               console.log(message);
               try {
                 const entryOrder = await makeOrder(
@@ -405,7 +254,8 @@ async function strategyCustom(strategy) {
                   quantity,
                   orderType,
                   exchange,
-                  "Indicator entry"
+                  "Indicator entry",
+                  pairId
                 );
 
                 price = entryOrder.price;
@@ -417,6 +267,7 @@ async function strategyCustom(strategy) {
               }
             } else if (shouldSell) {
               let message = "Selling";
+              pairId = uuidv4();
               console.log(message);
               try {
                 const entryOrder = await makeOrder(
@@ -426,7 +277,8 @@ async function strategyCustom(strategy) {
                   quantity,
                   orderType,
                   exchange,
-                  "Indicator entry"
+                  "Indicator entry",
+                  pairId
                 );
 
                 price = entryOrder.price;
@@ -454,7 +306,8 @@ async function strategyCustom(strategy) {
             exitHour,
             exitMinute,
             timeFrame,
-            orderStatus
+            orderStatus,
+            pairId
           );
 
           console.log("Exit Order: ", exitOrder);
@@ -490,7 +343,8 @@ async function checkForSLandTarget(
   exitHour,
   exitMinute,
   timeFrame,
-  orderStatus
+  orderStatus,
+  pairId
 ) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -561,8 +415,8 @@ async function checkForSLandTarget(
       Utils.print("targetPrice: ", targetPrice);
 
       while (1) {
-        LTP = 1;
-        // await Utils.getLTP(orderSymbol);
+        // LTP = 1;
+        LTP = await Utils.getLTP(orderSymbol);
         Utils.print("checking exit for ", orderSymbol, LTP);
 
         let currentTime = new Date();
@@ -580,7 +434,8 @@ async function checkForSLandTarget(
               quantity,
               orderType,
               exchange,
-              "Exit Time Reached"
+              "Exit Time Reached",
+              pairId
             );
             // Utils.print("Exit Order: ", exitOrder);
           } else if (orderStatus === "Sold") {
@@ -591,7 +446,8 @@ async function checkForSLandTarget(
               quantity,
               orderType,
               exchange,
-              "Exit Time Reached"
+              "Exit Time Reached",
+              pairId
             );
             // Utils.print("Exit Order: ", exitOrder);
           }
@@ -608,7 +464,8 @@ async function checkForSLandTarget(
                 quantity,
                 orderType,
                 exchange,
-                "Stoploss Hit"
+                "Stoploss Hit",
+                pairId
               );
               // Utils.print("Exit Order: ", exitOrder);
               break;
@@ -625,7 +482,8 @@ async function checkForSLandTarget(
                 quantity,
                 orderType,
                 exchange,
-                "Target Hit"
+                "Target Hit",
+                pairId
               );
               // Utils.print("Exit Order: ", exitOrder);
               break;
@@ -656,7 +514,8 @@ async function checkForSLandTarget(
                 quantity,
                 orderType,
                 exchange,
-                "Stoploss Hit"
+                "Stoploss Hit",
+                pairId
               );
               // Utils.print("Exit Order: ", exitOrder);
               break;
@@ -673,7 +532,8 @@ async function checkForSLandTarget(
                 quantity,
                 orderType,
                 exchange,
-                "Target Hit"
+                "Target Hit",
+                pairId
               );
               // Utils.print("Exit Order: ", exitOrder);
               break;
@@ -700,8 +560,12 @@ const makeOrder = async (
   quantity,
   orderType,
   exchange,
-  remarks
+  remarks,
+  pairId
 ) => {
+  let orderHistory;
+  let newOrder;
+
   let order = await placeTrade(
     account._id,
     account.userID,
@@ -716,29 +580,36 @@ const makeOrder = async (
     0
   );
 
-  let orderHistory = await getOrder(
-    account,
-    account.userID,
-    account.enctoken,
-    order.data.order_id
-  );
+  if (order) {
+    orderHistory = await getOrder(
+      account,
+      account.userID,
+      account.enctoken,
+      order.data.order_id
+    );
 
-  let price = orderHistory.data[orderHistory.data.length - 1].average_price;
+    // console.log(orderHistory);
 
-  let orderDetails = new Order({
-    user: account.user,
-    account: account._id,
-    orderId: order.data.order_id,
-    exchange: exchange,
-    orderSymbol: transformedOrderSymbol,
-    orderType: orderType,
-    direction: direction,
-    price: price,
-    quantity: quantity,
-    remarks: remarks,
-  });
+    let price = orderHistory.data[orderHistory.data.length - 1].average_price;
+    let status = orderHistory.data[orderHistory.data.length - 1].status;
 
-  const newOrder = await orderDetails.save();
+    let orderDetails = new Order({
+      user: account.user,
+      account: account._id,
+      orderId: order.data.order_id,
+      exchange: exchange,
+      orderSymbol: transformedOrderSymbol,
+      orderType: orderType,
+      direction: direction,
+      price: price,
+      quantity: quantity,
+      remarks: remarks,
+      status: status,
+      pairId: pairId,
+    });
+
+    newOrder = await orderDetails.save();
+  }
 
   return newOrder;
 };
