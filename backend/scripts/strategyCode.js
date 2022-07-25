@@ -79,11 +79,12 @@ async function strategyCustom(strategy) {
 
       let transformedOrderSymbol;
 
-      let indicatorValues = [];
-
       let price;
       let pairId;
       let orderStatus;
+
+      let shouldOrder;
+      let shouldBuy, shouldSell;
 
       // console.log(account);
       await Utils.waitForTime(entryHour, entryMinute, 0);
@@ -122,106 +123,37 @@ async function strategyCustom(strategy) {
           break;
         }
 
-        let indicatorResults = [];
+        let indicatorResults;
 
         try {
-          for (let i = 0; i < indicators.length; i++) {
-            const indicator = indicators[i];
-
-            let indicatorName = indicator.indicator;
-            let operator1 = indicator.operator1;
-            let operator2 = indicator.operator2;
-            let param1 = indicator.param1;
-            let param2 = indicator.param2;
-            let buyValue = indicator.value1;
-            let sellValue = indicator.value2;
-
-            let shouldBuy, shouldSell;
-
-            let comparator;
-
-            console.log(
-              indicatorName,
-              operator1,
-              operator2,
-              param1,
-              param2,
-              buyValue,
-              sellValue
-            );
-
-            let result = await evaluateIndicatorValue(
-              indicatorName,
-              dataSymbol,
-              timeFrame,
-              param1,
-              param2,
-              candleParam
-            );
-
-            console.log("Indicator Result: ", result);
-
-            if (direction === "BOTH") {
-              if (operator1 === "greater") {
-                if (result > buyValue) {
-                  indicatorResults.push(result > buyValue);
-                  shouldBuy = true;
-                }
-              } else if (operator1 === "less") {
-                if (result < buyValue) {
-                  indicatorResults.push(result < buyValue);
-                  shouldBuy = true;
-                }
-              } else if (operator1 === "signal") {
-                // idk what to do here
-              }
-
-              if (operator2 === "greater") {
-                if (result > sellValue) {
-                  indicatorResults.push(result > sellValue);
-                  shouldSell = true;
-                }
-              } else if (operator2 === "less") {
-                if (result < sellValue) {
-                  indicatorResults.push(result > sellValue);
-                  shouldSell = true;
-                }
-              } else if (operator2 === "signal") {
-                // idk what to do here
-              }
-            } else {
-              if (direction === "BUY") {
-                comparator = buyValue;
-              } else if (direction === "SELL") {
-                comparator = sellValue;
-              }
-
-              if (operator1 === "greater") {
-                indicatorResults.push(result > comparator);
-              } else if (operator1 === "less") {
-                indicatorResults.push(result < comparator);
-              } else if (operator1 === "signal") {
-                // idk what to do here
-              }
-            }
-          }
+          indicatorResults = await getBuySellArray(
+            indicators,
+            dataSymbol,
+            timeFrame,
+            candleParam,
+            direction
+          );
           console.log(indicatorResults);
         } catch (error) {
           console.log("Error occured in evaluating strategies!");
           console.log(error);
         }
 
-        let shouldOrder =
-          indicatorResults.every((element) => element === true) &&
-          indicatorResults.length > 0;
+        shouldOrder =
+          (indicatorResults.every((element) => element === "BUY") ||
+            indicatorResults.every((element) => element === "SELL")) &&
+          indicatorResults.length === indicators.length;
+
+        shouldBuy = indicatorResults.every((element) => element === "BUY");
+        shouldSell = indicatorResults.every((element) => element === "SELL");
 
         console.log("Whether we are going to order or not: ", shouldOrder);
 
         if (shouldOrder) {
           if (direction !== "BOTH") {
             let message = direction === "BUY" ? "Buying" : "Selling";
-            pairId = uuidv4();
             console.log(message);
+            pairId = uuidv4();
             try {
               const entryOrder = await makeOrder(
                 account,
@@ -242,7 +174,7 @@ async function strategyCustom(strategy) {
               console.log(error);
             }
           } else if (direction === "BOTH") {
-            if (shouldBuy) {
+            if (shouldBuy && orderStatus !== "Bought") {
               let message = "Buying";
               pairId = uuidv4();
               console.log(message);
@@ -265,7 +197,7 @@ async function strategyCustom(strategy) {
               } catch (error) {
                 console.log(error);
               }
-            } else if (shouldSell) {
+            } else if (shouldSell && orderStatus !== "Sold") {
               let message = "Selling";
               pairId = uuidv4();
               console.log(message);
@@ -305,11 +237,15 @@ async function strategyCustom(strategy) {
             targetUnit,
             exitHour,
             exitMinute,
+            dataSymbol,
+            candleParam,
             timeFrame,
             orderStatus,
-            pairId
+            pairId,
+            indicators
           );
 
+          orderStatus = exitOrder.direction === "BUY" ? "Bought" : "Sold";
           console.log("Exit Order: ", exitOrder);
           break;
         }
@@ -320,13 +256,113 @@ async function strategyCustom(strategy) {
         ) {
           break;
         }
-        await Utils.waitForXseconds(1);
+        await Utils.waitForXseconds(+timeFrame * 60);
       }
     } catch (error) {
       reject(error);
     }
   });
 }
+
+const getBuySellArray = async (
+  indicators,
+  dataSymbol,
+  timeFrame,
+  candleParam,
+  direction
+) => {
+  const indicatorResults = [];
+
+  for (let i = 0; i < indicators.length; i++) {
+    const indicator = indicators[i];
+
+    let indicatorName = indicator.indicator;
+    let operator1 = indicator.operator1;
+    let operator2 = indicator.operator2;
+    let param1 = indicator.param1;
+    let param2 = indicator.param2;
+    let buyValue = indicator.value1;
+    let sellValue = indicator.value2;
+
+    let shouldBuy = false;
+    let shouldSell = false;
+
+    // console.log(
+    //   indicatorName,
+    //   operator1,
+    //   operator2,
+    //   param1,
+    //   param2,
+    //   buyValue,
+    //   sellValue
+    // );
+
+    let result = await evaluateIndicatorValue(
+      indicatorName,
+      dataSymbol,
+      timeFrame,
+      param1,
+      param2,
+      candleParam
+    );
+
+    console.log("Indicator Result: ", result);
+    console.log("Buy Value: ", buyValue);
+    console.log("Sell Value: ", sellValue);
+
+    // Cases to handle when the direction is both
+    if (direction === "BOTH") {
+      if (operator1 === "greater") {
+        if (result > buyValue) {
+          shouldBuy = true;
+        }
+        if (result < sellValue) {
+          shouldSell = true;
+        }
+      } else if (operator1 === "less") {
+        if (result < buyValue) {
+          shouldBuy = true;
+        }
+        if (result > sellValue) {
+          shouldSell = true;
+        }
+      } else if (operator1 === "signal") {
+        // idk what to do here
+      }
+
+      if ((shouldBuy && shouldSell) || (!shouldBuy && !shouldSell)) {
+        indicatorResults.push("None");
+      } else if (shouldBuy) {
+        indicatorResults.push("BUY");
+      } else if(shouldSell) {
+        indicatorResults.push("SELL");
+      }
+    } else {
+      // Cases to handle when the direction is not both
+      if (direction === "BUY") {
+        // Buy direction
+        if (operator1 === "greater") {
+          indicatorResults.push(result > buyValue ? "BUY" : "None");
+        } else if (operator1 === "less") {
+          indicatorResults.push(result < buyValue ? "BUY" : "None");
+        } else if (operator1 === "signal") {
+          // idk what to do here
+        }
+      } else if (direction === "SELL") {
+        // Sell direction
+        if (operator2 === "greater") {
+          indicatorResults.push(result > sellValue ? "SELL" : "None");
+        } else if (operator2 === "less") {
+          indicatorResults.push(result < sellValue ? "SELL" : "None");
+        } else if (operator2 === "signal") {
+          // idk what to do here
+        }
+      }
+    }
+  }
+
+  return indicatorResults;
+};
 
 async function checkForSLandTarget(
   orderSymbol,
@@ -342,9 +378,12 @@ async function checkForSLandTarget(
   targetunit,
   exitHour,
   exitMinute,
+  dataSymbol,
+  candleParam,
   timeFrame,
   orderStatus,
-  pairId
+  pairId,
+  indicators
 ) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -427,6 +466,7 @@ async function checkForSLandTarget(
         ) {
           Utils.print("Exit Time Reached!");
           if (orderStatus === "Bought") {
+            console.log("Selling!");
             exitOrder = await makeOrder(
               account,
               orderSymbol,
@@ -439,6 +479,7 @@ async function checkForSLandTarget(
             );
             // Utils.print("Exit Order: ", exitOrder);
           } else if (orderStatus === "Sold") {
+            console.log("Buying!");
             exitOrder = await makeOrder(
               account,
               orderSymbol,
@@ -457,6 +498,7 @@ async function checkForSLandTarget(
           if (LTP < SL) {
             try {
               Utils.print("Stoploss hit");
+              console.log("Selling!");
               exitOrder = await makeOrder(
                 account,
                 orderSymbol,
@@ -475,6 +517,7 @@ async function checkForSLandTarget(
           } else if (LTP > targetPrice) {
             try {
               Utils.print("Target hit");
+              console.log("Selling!");
               exitOrder = await makeOrder(
                 account,
                 orderSymbol,
@@ -490,23 +533,57 @@ async function checkForSLandTarget(
             } catch (error) {
               console.log(error);
             }
+          } else if (direction === "BOTH") {
+            try {
+              const indicatorResults = await getBuySellArray(
+                indicators,
+                dataSymbol,
+                timeFrame,
+                candleParam,
+                direction
+              );
+              console.log(indicatorResults);
+            } catch (error) {
+              console.log("Error occured in evaluating strategies!");
+              console.log(error);
+            }
+
+            let shouldOrder =
+              (indicatorResults.every((element) => element === "BUY") ||
+                indicatorResults.every((element) => element === "SELL")) &&
+              indicatorResults.length === indicators.length;
+
+            let shouldSell = indicatorResults.every(
+              (element) => element === "SELL"
+            );
+
+            if (shouldOrder && shouldSell) {
+              try {
+                Utils.print("Indicator Exit");
+                console.log("Selling!");
+                exitOrder = await makeOrder(
+                  account,
+                  orderSymbol,
+                  "SELL",
+                  quantity,
+                  orderType,
+                  exchange,
+                  "Indicator Exit",
+                  pairId
+                );
+                // Utils.print("Exit Order: ", exitOrder);
+                break;
+              } catch (error) {
+                console.log(error);
+              }
+            }
           }
-          // else if (direction === "BOTH") {
-          //   if (operator2 === "Greater") {
-          //     if(LTP > sellValue) {
-          //       //sell
-          //     }
-          //   } else if(operator2 === "Less") {
-          //     if(LTP < sellValue) {
-          //       //sell
-          //     }
-          //   }
-          // }
         }
         if (orderStatus == "Sold") {
           if (LTP > SL) {
             try {
               Utils.print("Stoploss hit");
+              console.log("Buying!");
               exitOrder = await makeOrder(
                 account,
                 orderSymbol,
@@ -525,10 +602,11 @@ async function checkForSLandTarget(
           } else if (LTP < targetPrice) {
             try {
               Utils.print("Target hit");
+              console.log("Buying!");
               exitOrder = await makeOrder(
                 account,
                 orderSymbol,
-                "SELL",
+                "BUY",
                 quantity,
                 orderType,
                 exchange,
@@ -540,10 +618,54 @@ async function checkForSLandTarget(
             } catch (error) {
               console.log(error);
             }
+          } else if (direction === "BOTH") {
+            try {
+              const indicatorResults = await getBuySellArray(
+                indicators,
+                dataSymbol,
+                timeFrame,
+                candleParam,
+                direction
+              );
+              console.log(indicatorResults);
+            } catch (error) {
+              console.log("Error occured in evaluating strategies!");
+              console.log(error);
+            }
+
+            let shouldOrder =
+              (indicatorResults.every((element) => element === "BUY") ||
+                indicatorResults.every((element) => element === "SELL")) &&
+              indicatorResults.length === indicators.length;
+
+            let shouldBuy = indicatorResults.every(
+              (element) => element === "BUY"
+            );
+
+            if (shouldOrder && shouldBuy) {
+              try {
+                Utils.print("Indicator Exit");
+                console.log("Buying!");
+                exitOrder = await makeOrder(
+                  account,
+                  orderSymbol,
+                  "BUY",
+                  quantity,
+                  orderType,
+                  exchange,
+                  "Indicator Exit",
+                  pairId
+                );
+                // Utils.print("Exit Order: ", exitOrder);
+                break;
+              } catch (error) {
+                console.log(error);
+              }
+            }
           }
         }
 
-        await Utils.waitForXseconds(1);
+        await Utils.waitForXseconds(5);
       }
 
       resolve(exitOrder);
