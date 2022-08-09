@@ -10,6 +10,7 @@ const {
   getPositions,
   getAllLoginAccounts,
   makeDefaultAccount,
+  deleteAccount,
 } = require("../controllers/accountsController");
 const {
   requireSignin,
@@ -18,7 +19,13 @@ const {
 
 router.post("/addAccount", requireSignin, authMiddleware, addAccount);
 router.post("/updateAccount/:id", requireSignin, authMiddleware, updateAccount);
-router.post("/makeDefault/:id", requireSignin, authMiddleware, makeDefaultAccount);
+router.post("/deleteAccount/:id", requireSignin, authMiddleware, deleteAccount);
+router.post(
+  "/makeDefault/:id",
+  requireSignin,
+  authMiddleware,
+  makeDefaultAccount
+);
 router.get("/getAllAccounts/:id", requireSignin, authMiddleware, getAccounts);
 router.get("/getAllLoginAccounts", getAllLoginAccounts);
 router.get(
@@ -32,7 +39,7 @@ router.get("/getPositions/:id", requireSignin, authMiddleware, getPositions);
 
 module.exports = router;
 
-// loginOrderAccount()
+loginOrderAccount()
 
 // The time is in utc, 3:00AM in UTC is 8:30AM in IST
 cron.schedule(`0 0 3 * * 1-5`, async () => {
